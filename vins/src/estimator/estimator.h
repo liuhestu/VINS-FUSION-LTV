@@ -35,6 +35,8 @@
 #include "../factor/projectionTwoFrameTwoCamFactor.h"
 #include "../factor/projectionOneFrameTwoCamFactor.h"
 #include "../featureTracker/feature_tracker.h"
+#include "../ltv/ltv_observer.h"
+#include "../ltv/ltv_csv_logger.h"
 
 #define ROS_INFO RCUTILS_LOG_INFO
 #define ROS_WARN RCUTILS_LOG_WARN
@@ -83,6 +85,8 @@ class Estimator
     void fastPredictIMU(double t, Eigen::Vector3d linear_acceleration, Eigen::Vector3d angular_velocity);
     bool IMUAvailable(double t);
     void initFirstIMUPose(vector<pair<double, Eigen::Vector3d>> &accVector);
+    void processLtvImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image,
+                         double frame_timestamp);
 
     enum SolverFlag
     {
@@ -142,6 +146,10 @@ class Estimator
     FeatureManager f_manager;
     MotionEstimator m_estimator;
     InitialEXRotation initial_ex_rotation;
+
+    ltv::LtvObserver ltv_observer;
+    ltv::LtvCsvLogger ltv_csv_logger;
+    ltv::LtvSnapshot latest_ltv_snapshot;
 
     bool first_imu;
     bool is_valid, is_key;

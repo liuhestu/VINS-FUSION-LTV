@@ -94,6 +94,10 @@ void Estimator::clearState()
 
     f_manager.clearState();
 
+    ltv_observer.reset(ltv::LtvResetReason::EstimatorReset);
+    ltv_csv_logger.close();
+    latest_ltv_snapshot = ltv::LtvSnapshot{};
+
     failure_occur = 0;
 
     mProcess.unlock();
@@ -116,6 +120,13 @@ void Estimator::setParameter()
     g = G;
     cout << "set g " << g.transpose() << endl;
     featureTracker.readIntrinsicParameter(CAM_NAMES);
+
+    ltv::LtvConfig effective_ltv_config = LTV_CONFIG;
+    if (!USE_IMU || NUM_OF_CAM < 1)
+        effective_ltv_config.enable = false;
+    ltv_observer.configure(effective_ltv_config);
+    ltv_csv_logger.configure(effective_ltv_config.enable && effective_ltv_config.log_debug,
+                             effective_ltv_config.debug_csv_path);
 
     std::cout << "MULTIPLE_THREAD is " << MULTIPLE_THREAD << '\n';
     if (MULTIPLE_THREAD && !initThreadFlag)
@@ -448,7 +459,46 @@ void Estimator::processIMU(double t, double dt, const Vector3d &linear_accelerat
         Vs[j] += dt * un_acc;
     }
     acc_0 = linear_acceleration;
-    gyr_0 = angular_velocity; 
+    gyr_0 = angular_velocity;
+
+    if (solver_flag == NON_LINEAR && ltv_observer.started())
+    {
+        ltv_observer.propagateImu(dt, linear_acceleration, angular_velocity,
+                                  Bas[frame_count], Bgs[frame_count]);
+    }
+}
+
+void Estimator::processLtvImage(
+    const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image,
+    double frame_timestamp)
+{
+    if (!ltv_observer.enabled() || solver_flag != NON_LINEAR)
+        return;
+
+    const double imu_timestamp = frame_timestamp + td;
+    if (!ltv_observer.started())
+        ltv_observer.start(imu_timestamp);
+
+    std::vector<ltv::LtvFeatureObservation> observations;
+    observations.reserve(image.size());
+    for (const auto &feature : image)
+    {
+        for (const auto &camera_observation : feature.second)
+        {
+            if (camera_observation.first != 0)
+                continue;
+
+            ltv::LtvFeatureObservation observation;
+            observation.feature_id = feature.first;
+            observation.normalized_coordinate = camera_observation.second.head<3>();
+            observations.push_back(observation);
+            break;
+        }
+    }
+
+    latest_ltv_snapshot = ltv_observer.updateFeatures(
+        frame_timestamp, imu_timestamp, observations, ric[0], tic[0]);
+    ltv_csv_logger.write(latest_ltv_snapshot);
 }
 
 void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, const double header)
@@ -474,6 +524,10 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
     ROS_DEBUG("Solving %d", frame_count);
     ROS_DEBUG("number of feature: %d", f_manager.getFeatureCount());
     Headers[frame_count] = header;
+
+    // Passive one-way branch: freeze the LTV output before this frame's VINS
+    // optimization. The optimizer does not feed back into this camera update.
+    processLtvImage(image, header);
 
     ImageFrame imageframe(image, header);
     imageframe.pre_integration = tmp_pre_integration;

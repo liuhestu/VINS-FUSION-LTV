@@ -17,6 +17,7 @@
 #include <opencv2/core/eigen.hpp>
 #include <fstream>
 #include <map>
+#include "../ltv/ltv_types.h"
 
 using namespace std;
 
@@ -74,6 +75,7 @@ extern int FLOW_BACK;
 extern std::string WORLD_FRAME_ID;
 extern std::string BODY_FRAME_ID;
 extern std::string CAMERA_FRAME_ID;
+extern ltv::LtvConfig LTV_CONFIG;
 
 void readParameters(std::string config_file);
 

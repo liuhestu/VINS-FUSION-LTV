@@ -53,6 +53,48 @@ int FLOW_BACK;
 std::string WORLD_FRAME_ID;
 std::string BODY_FRAME_ID;
 std::string CAMERA_FRAME_ID;
+ltv::LtvConfig LTV_CONFIG;
+
+namespace
+{
+
+template <typename T>
+void readOptional(const cv::FileStorage &settings, const char *key, T &value)
+{
+    const cv::FileNode node = settings[key];
+    if (!node.empty())
+        node >> value;
+}
+
+void readLtvConfig(const cv::FileStorage &settings)
+{
+    LTV_CONFIG = ltv::LtvConfig{};
+    readOptional(settings, "ltv_enable", LTV_CONFIG.enable);
+    readOptional(settings, "ltv_log_debug", LTV_CONFIG.log_debug);
+    readOptional(settings, "ltv_max_features", LTV_CONFIG.max_features);
+    readOptional(settings, "ltv_min_features", LTV_CONFIG.min_features);
+    readOptional(settings, "ltv_feature_max_missed_frames", LTV_CONFIG.max_missed_frames);
+    readOptional(settings, "ltv_warmup_camera_updates", LTV_CONFIG.warmup_camera_updates);
+    readOptional(settings, "ltv_max_imu_dt", LTV_CONFIG.max_imu_dt);
+    readOptional(settings, "ltv_reset_gap", LTV_CONFIG.reset_gap);
+    readOptional(settings, "ltv_timestamp_tolerance", LTV_CONFIG.timestamp_tolerance);
+    readOptional(settings, "ltv_q_landmark", LTV_CONFIG.q_landmark);
+    readOptional(settings, "ltv_v_landmark", LTV_CONFIG.v_landmark);
+    readOptional(settings, "ltv_v_velocity", LTV_CONFIG.v_velocity);
+    readOptional(settings, "ltv_v_gravity", LTV_CONFIG.v_gravity);
+    readOptional(settings, "ltv_initial_p_landmark", LTV_CONFIG.initial_p_landmark);
+    readOptional(settings, "ltv_initial_p_velocity", LTV_CONFIG.initial_p_velocity);
+    readOptional(settings, "ltv_initial_p_gravity", LTV_CONFIG.initial_p_gravity);
+    readOptional(settings, "ltv_covariance_floor", LTV_CONFIG.covariance_floor);
+    readOptional(settings, "ltv_covariance_failure_threshold", LTV_CONFIG.covariance_failure_threshold);
+    readOptional(settings, "ltv_camera_euler_safety", LTV_CONFIG.camera_euler_safety);
+    readOptional(settings, "ltv_max_camera_substeps", LTV_CONFIG.max_camera_substeps);
+    readOptional(settings, "ltv_gravity_norm_min", LTV_CONFIG.gravity_norm_min);
+    readOptional(settings, "ltv_gravity_norm_max", LTV_CONFIG.gravity_norm_max);
+    readOptional(settings, "ltv_debug_csv_path", LTV_CONFIG.debug_csv_path);
+}
+
+} // namespace
 
 template <typename T>
 T readParam(rclcpp::Node::SharedPtr n, std::string name)
@@ -124,6 +166,10 @@ void readParameters(std::string config_file)
     std::cout << "result path " << VINS_RESULT_PATH << std::endl;
     std::ofstream fout(VINS_RESULT_PATH, std::ios::out);
     fout.close();
+
+    readLtvConfig(fsSettings);
+    if (LTV_CONFIG.debug_csv_path.empty())
+        LTV_CONFIG.debug_csv_path = OUTPUT_FOLDER + "/ltv_debug.csv";
 
     ESTIMATE_EXTRINSIC = fsSettings["estimate_extrinsic"];
     if (ESTIMATE_EXTRINSIC == 2)

@@ -1,0 +1,90 @@
+%YAML:1.0
+
+# EuRoC stereo + IMU baseline with the passive LTV observer enabled.
+imu: 1
+num_of_cam: 2
+
+imu_topic: "/imu0"
+image0_topic: "/cam0/image_raw"
+image1_topic: "/cam1/image_raw"
+output_path: "~/output/"
+
+cam0_calib: "cam0_mei.yaml"
+cam1_calib: "cam1_mei.yaml"
+image_width: 752
+image_height: 480
+
+use_gpu         : 0
+use_gpu_acc_flow: 0
+use_gpu_ceres   : 0
+
+estimate_extrinsic: 0
+body_T_cam0: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: d
+   data: [0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
+           0.999557249008, 0.0149672133247, 0.025715529948,  -0.064676986768,
+           -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
+           0, 0, 0, 1]
+
+body_T_cam1: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: d
+   data: [0.0125552670891, -0.999755099723, 0.0182237714554, -0.0198435579556,
+           0.999598781151, 0.0130119051815, 0.0251588363115, 0.0453689425024,
+          -0.0253898008918, 0.0179005838253, 0.999517347078, 0.00786212447038,
+          0, 0, 0, 1]
+
+multiple_thread: 1
+
+max_cnt: 150
+min_dist: 30
+freq: 10
+F_threshold: 1.0
+show_track: 1
+flow_back: 1
+
+max_solver_time: 0.04
+max_num_iterations: 8
+keyframe_parallax: 10.0
+
+acc_n: 0.1
+gyr_n: 0.01
+acc_w: 0.001
+gyr_w: 0.0001
+g_norm: 9.81007
+
+estimate_td: 0
+td: 0.0
+
+load_previous_pose_graph: 0
+pose_graph_save_path: "~/output/pose_graph/"
+save_image: 1
+
+# Passive LTV observer. Q/V/P0 reproduce the paper's simulation-scale
+# starting point and are deliberately configurable for dataset tuning.
+ltv_enable: 1
+ltv_log_debug: 1
+ltv_debug_csv_path: "~/output/ltv_debug.csv"
+ltv_max_features: 30
+ltv_min_features: 15
+ltv_feature_max_missed_frames: 2
+ltv_warmup_camera_updates: 20
+ltv_max_imu_dt: 0.05
+ltv_reset_gap: 0.2
+ltv_timestamp_tolerance: 0.005
+ltv_q_landmark: 1.0e-4
+ltv_v_landmark: 1.0e6
+ltv_v_velocity: 1.0e6
+ltv_v_gravity: 1.0e6
+ltv_initial_p_landmark: 1.0
+ltv_initial_p_velocity: 1.0
+ltv_initial_p_gravity: 1.0
+ltv_covariance_floor: 1.0e-9
+ltv_covariance_failure_threshold: -1.0e-3
+ltv_camera_euler_safety: 0.5
+ltv_max_camera_substeps: 100
+ltv_gravity_norm_min: 7.0
+ltv_gravity_norm_max: 12.0

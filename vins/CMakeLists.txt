@@ -48,6 +48,8 @@ add_library(vins_lib
     src/utility/utility.cpp
     src/utility/visualization.cpp
     src/utility/CameraPoseVisualization.cpp
+    src/ltv/ltv_observer.cpp
+    src/ltv/ltv_csv_logger.cpp
     src/initial/solve_5pts.cpp
     src/initial/initial_aligment.cpp
     src/initial/initial_sfm.cpp
@@ -68,6 +70,17 @@ target_link_libraries(kitti_odom_test vins_lib)
 add_executable(kitti_gps_test src/KITTIGPSTest.cpp)
 ament_target_dependencies(kitti_gps_test rclcpp rcpputils std_msgs visualization_msgs geometry_msgs nav_msgs tf2 tf2_ros cv_bridge camera_models image_transport)
 target_link_libraries(kitti_gps_test vins_lib) 
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_ltv_observer
+    test/test_ltv_observer.cpp
+    src/ltv/ltv_observer.cpp
+    src/ltv/ltv_csv_logger.cpp)
+  if(TARGET test_ltv_observer)
+    target_include_directories(test_ltv_observer PRIVATE src)
+  endif()
+endif()
 
 # added from DEBUG
 
