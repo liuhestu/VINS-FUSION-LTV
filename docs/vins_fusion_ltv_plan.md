@@ -214,27 +214,13 @@ $$
 # 第五阶段：系统验证 —— 证明它到底有没有价值。
 这一阶段代码反而不是重点，重点是消融：
 
-$$
-\text{Baseline}
-$$
+| 方案                            | Gravity | Velocity | 用途             |
+| ----------------------------- | ------: | -------: | -------------- |
+| Baseline                      |       × |        × | 基准             |
+| Baseline + Gravity            |       ✓ |        × | 单独验证 \(g\) 的作用 |
+| Baseline + Velocity           |       × |        ✓ | 单独验证 \(v\) 的作用 |
+| Baseline + Gravity + Velocity |       ✓ |        ✓ | 看两者是否互补        |
 
-vs
-
-$$
-\text{Baseline + Passive LTV}
-$$
-
-vs
-
-$$
-\text{+ Gravity}
-$$
-
-vs
-
-$$
-\text{+ Gravity + Velocity}.
-$$
 
 然后重点看 MH_04、MH_05、V1_03、V2_03 这类 aggressive sequence。
 
