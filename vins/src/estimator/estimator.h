@@ -39,6 +39,7 @@
 #include "../featureTracker/feature_tracker.h"
 #include "../ltv/ltv_observer.h"
 #include "../ltv/ltv_csv_logger.h"
+#include "../ltv/ltv_quality_gate.h"
 #include "../ltv/ltv_snapshot_window.h"
 
 #define ROS_INFO RCUTILS_LOG_INFO
@@ -90,6 +91,7 @@ class Estimator
     void initFirstIMUPose(vector<pair<double, Eigen::Vector3d>> &accVector);
     void processLtvImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image,
                          double frame_timestamp);
+    bool ltvGravityFactorBaseEligible(int index) const;
     bool ltvGravityFactorEligible(int index) const;
     bool ltvVelocityFactorEligible(int index) const;
     void updateLtvFactorDiagnostics(int index);
@@ -158,6 +160,7 @@ class Estimator
     ltv::LtvConfig ltv_config;
     ltv::LtvSnapshot latest_ltv_snapshot;
     ltv::LtvSnapshotWindow<WINDOW_SIZE + 1> ltv_snapshot_window;
+    int gravity_gate_cooldown_frames_remaining = 0;
 
     bool first_imu;
     bool is_valid, is_key;

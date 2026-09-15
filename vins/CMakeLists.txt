@@ -51,6 +51,7 @@ add_library(vins_lib
     src/utility/visualization.cpp
     src/utility/CameraPoseVisualization.cpp
     src/ltv/ltv_observer.cpp
+    src/ltv/ltv_quality_gate.cpp
     src/ltv/ltv_csv_logger.cpp
     src/initial/solve_5pts.cpp
     src/initial/initial_aligment.cpp
@@ -79,9 +80,16 @@ if(BUILD_TESTING)
   ament_add_gtest(test_ltv_observer
     test/test_ltv_observer.cpp
     src/ltv/ltv_observer.cpp
+    src/ltv/ltv_quality_gate.cpp
     src/ltv/ltv_csv_logger.cpp)
   if(TARGET test_ltv_observer)
     target_include_directories(test_ltv_observer PRIVATE src)
+  endif()
+  ament_add_gtest(test_ltv_quality_gate
+    test/test_ltv_quality_gate.cpp
+    src/ltv/ltv_quality_gate.cpp)
+  if(TARGET test_ltv_quality_gate)
+    target_include_directories(test_ltv_quality_gate PRIVATE src)
   endif()
   ament_add_gtest(test_ltv_snapshot test/test_ltv_snapshot.cpp)
   if(TARGET test_ltv_snapshot)

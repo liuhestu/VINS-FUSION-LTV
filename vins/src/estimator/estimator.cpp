@@ -101,6 +101,7 @@ void Estimator::clearState()
     ltv_csv_logger.close();
     latest_ltv_snapshot = ltv::LtvSnapshot{};
     ltv_snapshot_window.clear();
+    gravity_gate_cooldown_frames_remaining = 0;
 
     failure_occur = 0;
 
@@ -142,6 +143,19 @@ void Estimator::setParameter()
     {
         ROS_WARN("invalid LTV gravity factor configuration; disabling gravity factor");
         ltv_config.enable_gravity_factor = false;
+    }
+    ltv_config.gravity_gate_min_features = std::max(
+        1, std::min(ltv_config.gravity_gate_min_features, ltv_config.max_features));
+    ltv_config.gravity_gate_reset_cooldown_frames = std::max(
+        0, ltv_config.gravity_gate_reset_cooldown_frames);
+    if (ltv_config.enable_gravity_quality_gate &&
+        (!std::isfinite(ltv_config.gravity_gate_max_eta_norm_error) ||
+         ltv_config.gravity_gate_max_eta_norm_error < 0.0 ||
+         !std::isfinite(ltv_config.gravity_gate_max_normalized_innovation) ||
+         ltv_config.gravity_gate_max_normalized_innovation < -1.0))
+    {
+        ROS_WARN("invalid LTV gravity quality gate configuration; disabling quality gate");
+        ltv_config.enable_gravity_quality_gate = false;
     }
     ltv_observer.configure(ltv_config);
     ltv_csv_logger.configure(ltv_config.enable && ltv_config.log_debug,
@@ -522,10 +536,9 @@ void Estimator::processLtvImage(
     ltv_snapshot_window[frame_count] = latest_ltv_snapshot;
 }
 
-bool Estimator::ltvGravityFactorEligible(int index) const
+bool Estimator::ltvGravityFactorBaseEligible(int index) const
 {
-    if (!ltv_config.enable || !ltv_config.enable_gravity_factor ||
-        index < 0 || index > frame_count || index > WINDOW_SIZE)
+    if (!ltv_config.enable || index < 0 || index > frame_count || index > WINDOW_SIZE)
     {
         return false;
     }
@@ -543,6 +556,15 @@ bool Estimator::ltvGravityFactorEligible(int index) const
            gravity_norm >= ltv_config.gravity_norm_min &&
            gravity_norm <= ltv_config.gravity_norm_max &&
            g.allFinite() && g.norm() > 1e-12;
+}
+
+bool Estimator::ltvGravityFactorEligible(int index) const
+{
+    if (!ltv_config.enable_gravity_factor || !ltvGravityFactorBaseEligible(index))
+        return false;
+
+    const ltv::LtvSnapshot &snapshot = ltv_snapshot_window[index];
+    return !ltv_config.enable_gravity_quality_gate || snapshot.gravity_gate_pass;
 }
 
 bool Estimator::ltvVelocityFactorEligible(int index) const
@@ -573,6 +595,27 @@ void Estimator::updateLtvFactorDiagnostics(int index)
     ltv::LtvSnapshot &snapshot = ltv_snapshot_window[index];
     snapshot.snapshot_time_error =
         std::abs(snapshot.frame_timestamp - Headers[index]);
+    const bool gravity_base_eligible = ltvGravityFactorBaseEligible(index);
+    if (snapshot.last_reset_reason != ltv::LtvResetReason::None)
+    {
+        gravity_gate_cooldown_frames_remaining =
+            ltv_config.gravity_gate_reset_cooldown_frames;
+    }
+    const ltv::GravityGateDecision gravity_gate = ltv::evaluateGravityQualityGate(
+        ltv_config, snapshot, gravity_base_eligible, g.norm(),
+        gravity_gate_cooldown_frames_remaining);
+    snapshot.gravity_gate_base_eligible = gravity_gate.base_eligible;
+    snapshot.gravity_gate_feature_ok = gravity_gate.feature_ok;
+    snapshot.gravity_gate_eta_norm_ok = gravity_gate.eta_norm_ok;
+    snapshot.gravity_gate_innovation_ok = gravity_gate.innovation_ok;
+    snapshot.gravity_gate_reset_ok = gravity_gate.reset_ok;
+    snapshot.gravity_gate_pass = gravity_gate.pass;
+    snapshot.gravity_gate_reason_mask = gravity_gate.reason_mask;
+    if (snapshot.last_reset_reason == ltv::LtvResetReason::None &&
+        gravity_gate_cooldown_frames_remaining > 0)
+    {
+        --gravity_gate_cooldown_frames_remaining;
+    }
     snapshot.gravity_factor_added = ltvGravityFactorEligible(index);
     snapshot.velocity_factor_added = ltvVelocityFactorEligible(index);
 

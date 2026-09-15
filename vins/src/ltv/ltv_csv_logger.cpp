@@ -38,7 +38,10 @@ void LtvCsvLogger::configure(bool enabled, const std::string &path)
                    "velocity_valid,gravity_valid,update_time_ms,camera_substeps,reset_reason,"
                    "snapshot_time_error,gravity_angle_ltv_vs_vins_deg,"
                    "gravity_factor_residual_norm,gravity_factor_weighted_residual_norm,"
-                   "gravity_factor_added,vins_velocity_body_x,vins_velocity_body_y,"
+                   "gravity_factor_added,gravity_gate_base_eligible,"
+                   "gravity_gate_feature_ok,gravity_gate_eta_norm_ok,"
+                   "gravity_gate_innovation_ok,gravity_gate_reset_ok,gravity_gate_pass,"
+                   "gravity_gate_reason_mask,vins_velocity_body_x,vins_velocity_body_y,"
                    "vins_velocity_body_z,velocity_factor_residual_x,"
                    "velocity_factor_residual_y,velocity_factor_residual_z,"
                    "velocity_factor_residual_norm,"
@@ -75,6 +78,13 @@ void LtvCsvLogger::write(const LtvSnapshot &snapshot)
             << snapshot.gravity_factor_residual_norm << ','
             << snapshot.gravity_factor_weighted_residual_norm << ','
             << snapshot.gravity_factor_added << ','
+            << snapshot.gravity_gate_base_eligible << ','
+            << snapshot.gravity_gate_feature_ok << ','
+            << snapshot.gravity_gate_eta_norm_ok << ','
+            << snapshot.gravity_gate_innovation_ok << ','
+            << snapshot.gravity_gate_reset_ok << ','
+            << snapshot.gravity_gate_pass << ','
+            << snapshot.gravity_gate_reason_mask << ','
             << snapshot.vins_velocity_body.x() << ','
             << snapshot.vins_velocity_body.y() << ','
             << snapshot.vins_velocity_body.z() << ','

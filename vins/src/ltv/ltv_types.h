@@ -13,6 +13,7 @@ struct LtvConfig
     bool log_debug = false;
     bool enable_gravity_factor = false;
     bool enable_velocity_factor = false;
+    bool enable_gravity_quality_gate = false;
     int max_features = 30;
     int min_features = 15;
     int max_missed_frames = 2;
@@ -35,6 +36,10 @@ struct LtvConfig
     double gravity_norm_max = 12.0;
     double gravity_sigma_deg = 10.0;
     double gravity_huber_delta = 2.0;
+    int gravity_gate_min_features = 15;
+    double gravity_gate_max_eta_norm_error = 0.5;
+    double gravity_gate_max_normalized_innovation = -1.0;
+    int gravity_gate_reset_cooldown_frames = 0;
     double velocity_sigma_mps = 1.0;
     double velocity_huber_delta = 2.0;
     double snapshot_max_time_error = 0.005;
@@ -99,6 +104,13 @@ struct LtvSnapshot
     double gravity_factor_residual_norm = 0.0;
     double gravity_factor_weighted_residual_norm = 0.0;
     bool gravity_factor_added = false;
+    bool gravity_gate_base_eligible = false;
+    bool gravity_gate_feature_ok = false;
+    bool gravity_gate_eta_norm_ok = false;
+    bool gravity_gate_innovation_ok = false;
+    bool gravity_gate_reset_ok = false;
+    bool gravity_gate_pass = false;
+    unsigned int gravity_gate_reason_mask = 0;
     Eigen::Vector3d vins_velocity_body = Eigen::Vector3d::Zero();
     Eigen::Vector3d velocity_factor_residual = Eigen::Vector3d::Zero();
     double velocity_factor_residual_norm = 0.0;

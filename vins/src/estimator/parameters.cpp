@@ -73,6 +73,8 @@ void readLtvConfig(const cv::FileStorage &settings)
     readOptional(settings, "ltv_log_debug", LTV_CONFIG.log_debug);
     readOptional(settings, "ltv_enable_gravity_factor", LTV_CONFIG.enable_gravity_factor);
     readOptional(settings, "ltv_enable_velocity_factor", LTV_CONFIG.enable_velocity_factor);
+    readOptional(settings, "ltv_enable_gravity_quality_gate",
+                 LTV_CONFIG.enable_gravity_quality_gate);
     readOptional(settings, "ltv_max_features", LTV_CONFIG.max_features);
     readOptional(settings, "ltv_min_features", LTV_CONFIG.min_features);
     readOptional(settings, "ltv_feature_max_missed_frames", LTV_CONFIG.max_missed_frames);
@@ -95,6 +97,14 @@ void readLtvConfig(const cv::FileStorage &settings)
     readOptional(settings, "ltv_gravity_norm_max", LTV_CONFIG.gravity_norm_max);
     readOptional(settings, "ltv_gravity_sigma_deg", LTV_CONFIG.gravity_sigma_deg);
     readOptional(settings, "ltv_gravity_huber_delta", LTV_CONFIG.gravity_huber_delta);
+    readOptional(settings, "ltv_gravity_gate_min_features",
+                 LTV_CONFIG.gravity_gate_min_features);
+    readOptional(settings, "ltv_gravity_gate_max_eta_norm_error",
+                 LTV_CONFIG.gravity_gate_max_eta_norm_error);
+    readOptional(settings, "ltv_gravity_gate_max_normalized_innovation",
+                 LTV_CONFIG.gravity_gate_max_normalized_innovation);
+    readOptional(settings, "ltv_gravity_gate_reset_cooldown_frames",
+                 LTV_CONFIG.gravity_gate_reset_cooldown_frames);
     readOptional(settings, "ltv_velocity_sigma_mps", LTV_CONFIG.velocity_sigma_mps);
     readOptional(settings, "ltv_velocity_huber_delta", LTV_CONFIG.velocity_huber_delta);
     readOptional(settings, "ltv_snapshot_max_time_error", LTV_CONFIG.snapshot_max_time_error);
