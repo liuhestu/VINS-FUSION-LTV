@@ -166,7 +166,8 @@ void pubOdometry(const Estimator &estimator, const std_msgs::msg::Header &header
         // write result to file
         ofstream foutC(VINS_RESULT_PATH, ios::app);
         foutC.setf(ios::fixed, ios::floatfield);
-        foutC.precision(0);
+        // Preserve the camera timestamp for trajectory/ground-truth matching.
+        foutC.precision(9);
         foutC << header.stamp.sec + header.stamp.nanosec * (1e-9) << ",";
         foutC.precision(5);
         foutC << estimator.Ps[WINDOW_SIZE].x() << ","
