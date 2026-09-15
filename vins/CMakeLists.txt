@@ -42,6 +42,7 @@ add_library(vins_lib
     src/estimator/feature_manager.cpp
     src/factor/pose_local_parameterization.cpp
     src/factor/ltv_gravity_factor.cpp
+    src/factor/ltv_velocity_factor.cpp
     src/factor/projectionTwoFrameOneCamFactor.cpp
     src/factor/projectionTwoFrameTwoCamFactor.cpp
     src/factor/projectionOneFrameTwoCamFactor.cpp
@@ -91,6 +92,14 @@ if(BUILD_TESTING)
   if(TARGET test_ltv_gravity_factor)
     target_include_directories(test_ltv_gravity_factor PRIVATE src)
     target_link_libraries(test_ltv_gravity_factor ${CERES_LIBRARIES})
+  endif()
+  ament_add_gtest(test_ltv_velocity_factor
+    test/test_ltv_velocity_factor.cpp
+    src/factor/ltv_velocity_factor.cpp
+    src/factor/pose_local_parameterization.cpp)
+  if(TARGET test_ltv_velocity_factor)
+    target_include_directories(test_ltv_velocity_factor PRIVATE src)
+    target_link_libraries(test_ltv_velocity_factor ${CERES_LIBRARIES})
   endif()
 endif()
 
