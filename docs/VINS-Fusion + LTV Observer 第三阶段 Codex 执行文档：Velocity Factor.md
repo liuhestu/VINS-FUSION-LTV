@@ -126,7 +126,13 @@ R(\delta\theta)^TV
 =\frac{R^T}{\sigma_v}.
 \]
 
-当前项目的 `PlusJacobian` 把前六个 ambient 列直接映射为 `[delta position, delta theta]`，所以 `3 x 7` pose Jacobian 必须为：
+当前项目的 `PoseLocalParameterization::Plus()` 使用右扰动，且 `PlusJacobian` 采用本项目现有的特殊 ambient→local 映射。因此实现时应以 **effective local Jacobian** 为数学判据：
+
+\[
+J_{\mathrm{local}}=J_{\mathrm{ambient}}J_{\mathrm{Plus}}.
+\]
+
+在当前项目布局下，为得到正确的 local Jacobian，`3 x 7` pose Jacobian 按现有 VINS factor 约定写为：
 
 ```text
 columns 0..2 = zero
@@ -141,7 +147,7 @@ columns 0..2 = R^T / sigma_v
 columns 3..8 = zero
 ```
 
-禁止套用标准 Ceres quaternion ambient derivative 覆盖本项目的自定义布局；velocity factor 不直接约束 accelerometer bias 或 gyroscope bias。
+这里的 `3 x 7` 不能解释为通用 quaternion ambient derivative；它是在本项目 `PoseLocalParameterization` 下得到正确 tangent-space Jacobian 的实现布局。禁止直接套用标准 Ceres quaternion ambient derivative 覆盖当前项目约定；velocity factor 不直接约束 accelerometer bias 或 gyroscope bias。
 
 ---
 
@@ -162,8 +168,18 @@ Finite difference 要求：
 ```text
 random states >= 20
 epsilon = 1e-6
-pose perturbation遵循 PoseLocalParameterization::Plus
+pose perturbation 遵循 PoseLocalParameterization::Plus
 ```
+
+测试必须实际调用 `PoseLocalParameterization::PlusJacobian()`，并明确比较：
+
+\[
+J_{\mathrm{ambient}}J_{\mathrm{Plus}}
+\]
+
+与通过 `PoseLocalParameterization::Plus()` 对六维 local pose 施加扰动得到的 numerical local Jacobian。必须覆盖三个 position local 维度并验证其导数为零，不能只比较 `3 x 7` 存储矩阵中的 rotation block。
+
+`para_SpeedBias` 没有 manifold，直接比较完整 `3 x 9` analytic Jacobian 与九维 numerical Jacobian，并确认六个 bias 列为零。
 
 解析与数值 Jacobian 不一致时立即停止，不允许进入 EuRoC 回放。
 
@@ -179,7 +195,7 @@ ltv_velocity_sigma_mps: 1.0
 ltv_velocity_huber_delta: 2.0
 ```
 
-默认必须关闭。`1.0 m/s` 的第一轮依据是现有 Passive 数据的 LTV–VINS body velocity difference RMSE：
+默认必须关闭。`1.0 m/s` 仅作为第一轮保守工程权重。现有 Passive 数据中的 LTV–VINS body velocity disagreement 为：
 
 ```text
 V1_01 ≈ 0.48 m/s
@@ -187,7 +203,9 @@ V2_02 ≈ 0.82 m/s
 V2_03 ≈ 0.98 m/s
 ```
 
-这只是保守工程权重，不代表 LTV velocity 是统计独立、标准差为 `1.0 m/s` 的传感器观测。LTV 和 VINS 共享 IMU、camera bearings 和部分 bias estimate，因此必须使用独立 enable flag、独立 Huber loss、默认关闭且不进入 marginalization。
+这些数值只能说明 **LTV 与 VINS 当前估计之间的分歧尺度**，不能直接解释为 LTV velocity 的真实精度、measurement noise 或标准差：分歧大可能是 LTV 错，也可能是 VINS 错；分歧小也不能证明两者都接近 GT。
+
+因此 `1.0 m/s` 只是用于第一轮弱约束实验。真正判断 velocity factor 是否有效，必须以对 GT 的 `VINS velocity error` 在加 factor 前后的变化为主。LTV 和 VINS 共享 IMU、camera bearings 和部分 bias estimate，因此必须使用独立 enable flag、独立 Huber loss、默认关闭且不进入 marginalization。
 
 第一轮不自动 sweep。若三序列显示稳定但权重明显不合适，只在 V1_01 依次测试 `2.0 / 1.0 / 0.5 m/s`，不得对 11 序列做参数笛卡尔积。
 
@@ -289,20 +307,68 @@ velocity_factor_added
 
 # 10. EuRoC velocity evaluator
 
-扩展 `vins/scripts/evaluate_vins_euroc.py`：
+扩展 `vins/scripts/evaluate_vins_euroc.py`。GT 来源优先级固定为：
 
-- `vio.csv` 有 quaternion 后的 `Vx,Vy,Vz` 时输出 velocity metrics；旧 pose-only 文件继续可用。
-- Vicon bag 没有直接 velocity，使用世界系 GT 位置在 `t ± 0.05 s` 的线性插值做中心差分：
-  \[
-  V_{GT}(t)=\frac{p(t+0.05)-p(t-0.05)}{0.1}.
-  \]
-- 只使用差分窗口完整落在 GT 范围内的样本。
-- 用位置 SE(3) alignment 的 rotation 变换 VINS world velocity；translation 不作用于 velocity。
-- 新增 `--velocity-difference-window`，默认 `0.1` 秒。
-- 输出 `velocity_samples`、`velocity_rmse_mps`、`velocity_p95_error_mps` 和 `maximum_velocity_error_mps`。
-- Leica position-only 序列不输出 velocity/orientation metrics。
+1. 命令行 `--ground-truth-csv PATH` 显式指定的 EuRoC 官方 CSV；
+2. 自动查找 `<bag>/mav0/state_groundtruth_estimate0/data.csv`；
+3. 自动查找 `<bag>/state_groundtruth_estimate0/data.csv`；
+4. 当前 ROS 2 bag 中的 Vicon/Leica pose；缺少官方 velocity 时才允许用 position difference fallback。
 
-用匀速合成轨迹和已知旋转轨迹验证中心差分及 velocity alignment。若新增 Python test，必须注册进 ament test，不能留下无人执行的测试文件。
+不要在 evaluator 中实现数据集下载器。测试数据由运行环境准备，并通过 `--ground-truth-csv` 显式传入，以免把错误序列的 GT 静默用于当前轨迹。
+
+官方 CSV 读取要求：
+
+- timestamp 是纳秒，转换为秒时乘 `1e-9`；
+- 按实际 header 名称读取 `p_RS_R_x/y/z`、`q_RS_w/x/y/z` 和 `v_RS_R_x/y/z`，不要依赖未经验证的固定列偏移；
+- `v_RS_R` 是 reference/world frame 中 IMU sensor origin 的 velocity，与 VINS IMU velocity 语义一致；
+- CSV header 允许包含开头 `#`、空格和单位后缀。
+
+提供官方 CSV 时，position、orientation 和 velocity 必须统一使用同一个官方 GT 来源：
+
+- 用官方 `p_RS_R` 求 position SE(3) alignment；
+- alignment rotation 同时作用于 VINS position、orientation 和 world velocity；
+- alignment translation 只作用于 position；
+- 官方 `q_RS` 与 VINS 都是 IMU sensor frame，不使用 bag Vicon 分支的首 50 帧 fixed-body rotation 修正。
+
+这避免用 Vicon vehicle-body pose 求 alignment、再用 IMU sensor velocity 评价时产生 frame-origin 混用。现有 V1_01 官方 CSV 的只读可行性检查得到：
+
+```text
+matched samples: 1436
+maximum timestamp error: about 2.4e-7 s
+Passive VINS velocity RMSE: about 0.0320 m/s
+```
+
+只有官方 velocity 确实不可用时，才使用 world-frame GT position fallback：
+
+\[
+V_{GT}(t)=\frac{p(t+\Delta t/2)-p(t-\Delta t/2)}{\Delta t},
+\qquad \Delta t=0.1\ \mathrm{s}.
+\]
+
+Fallback 只使用完整落在 GT 范围内的样本；`--velocity-difference-window` 默认 `0.1` 秒，并且只控制该 fallback。位置差分会引入噪声和低通效应，不能在官方 velocity 存在时作为主指标。
+
+具体输出：
+
+```text
+ground_truth_source = official_csv | rosbag_vicon | rosbag_leica
+velocity_gt_source = official | position_difference | unavailable
+velocity_samples
+velocity_rmse_mps
+velocity_p95_error_mps
+maximum_velocity_error_mps
+```
+
+`vio.csv` 有 quaternion 后的 `Vx,Vy,Vz` 时才输出 velocity metrics；旧 pose-only 文件继续支持。Leica 没有可靠 velocity 时默认不输出 velocity/orientation metrics；若使用 position difference，报告必须标记为 fallback/provisional。
+
+测试至少覆盖：
+
+- synthetic official CSV velocity 被直接使用，不触发差分；
+- 匀速位置在 fallback 中恢复正确 velocity；
+- 已知旋转下 velocity alignment 正确且 translation 不影响 velocity；
+- official velocity 缺失时才进入 fallback；
+- 旧 pose-only trajectory 仍输出原 position/orientation metrics。
+
+若新增 Python test，必须注册进 ament test，不能留下无人执行的测试文件。
 
 ---
 
@@ -318,6 +384,8 @@ ltv_velocity_sigma_mps: 1.0
 ```
 
 Gravity factor 关闭，但 Gravity diagnostics 继续记录。已有 Stage 2 Passive 结果作为主参考。
+
+正式 velocity accuracy 对照必须为三个开发序列分别准备匹配的官方 `state_groundtruth_estimate0/data.csv`。当前环境已确认存在 V1_01 的一份官方 CSV，但 EuRoC ROS 2 bag 目录本身不包含该文件，且尚未在数据目录发现 V2_02/V2_03 官方 CSV。因此运行前必须显式核对序列名与 `--ground-truth-csv`；缺失时可以先做运行稳定性检查和 position-difference fallback，但结果只能标记为 provisional，不能据此宣布 Stage 3 正式通过。
 
 快速开发集固定为：
 
@@ -373,7 +441,7 @@ rotation RMSE degradation <= about 3%
 velocity RMSE degradation <= about 3%
 ```
 
-V2_02 或 V2_03 至少一个在以下指标中有一项改善约 `3%` 以上，且不是单个尖峰：
+V2_02 或 V2_03 至少一个在以下指标中有一项改善约 `3%` 以上，且不是单个尖峰；其中 velocity 指标必须优先基于官方 GT velocity：
 
 ```text
 velocity RMSE / P95 / max
@@ -386,6 +454,8 @@ stability
 另一个困难序列的 ATE、rotation RMSE 和 velocity RMSE 不应明显恶化，第一轮以约 `3%` 为判断线。
 
 有效 factor 覆盖率低于 `20%` 时标记 `insufficient factor coverage`，该序列不能单独用于宣称成功或失败。
+
+V2_02/V2_03 没有官方 velocity GT 时，本轮最多得到 `runtime passed, velocity conclusion provisional`，不能用中心差分结果替代正式 velocity 验收。
 
 ---
 
@@ -403,6 +473,20 @@ reset events
 ```
 
 重点比较 aggressive motion 前、中、后，判断 factor 是降低真实速度误差、只改变全局对齐，还是在 LTV 错误时拉坏 VINS；同时检查速度改善是否降低后续位置误差增长。
+
+报告必须严格区分：
+
+```text
+LTV–VINS velocity disagreement
+→ 描述两套估计之间的分歧
+→ 可作为未来 Quality Gate/RL 输入
+
+VINS–GT velocity error
+→ 判断 Velocity factor 是否真正提高估计质量
+→ Stage 3 的主结论指标
+```
+
+禁止仅因为 LTV–VINS disagreement 下降就宣称 velocity accuracy 改善。
 
 ---
 
@@ -430,8 +514,9 @@ ltv_enable_velocity_factor: 1
 5. PoseLocalParameterization 右扰动；
 6. `3x7`、`3x9` Jacobian 内存布局；
 7. sigma、Huber、factor count；
-8. observer reset、feature coverage、时间同步；
-9. 排除代码与数据问题后，返回论文原式。
+8. official CSV 序列名、timestamp、frame 和 GT source；
+9. observer reset、feature coverage、时间同步；
+10. 排除代码与数据问题后，返回论文原式。
 
 禁止在 Jacobian 未通过时用调权重掩盖实现错误。
 
@@ -469,7 +554,8 @@ STEP 8.3  实现 Jacobians → finite-difference tests
 STEP 8.4  config + eligibility → build/test
 STEP 8.5  current optimization only → build/test
 STEP 8.6  snapshot/CSV → disabled-path regression
-STEP 8.7  evaluator velocity metrics → synthetic test
+STEP 8.7  official-GT-first evaluator → synthetic test
+          核对 V1_01/V2_02/V2_03 官方 CSV 可用性
 STEP 8.8  V1_01 velocity-only
 STEP 8.9  V2_02 velocity-only
 STEP 8.10 V2_03 velocity-only
@@ -490,6 +576,7 @@ STEP 8.11 汇总 → stop and report
 ## Eligibility and optimizer integration
 ## Gravity/Velocity diagnostic data
 ## Build and unit tests
+## Ground-truth source and coverage
 ## V1_01: Passive vs Velocity-only
 ## V2_02: Passive vs Velocity-only
 ## V2_03: Passive vs Velocity-only
