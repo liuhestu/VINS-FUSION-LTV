@@ -75,6 +75,7 @@ target_link_libraries(kitti_gps_test vins_lib)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
   ament_add_gtest(test_ltv_observer
     test/test_ltv_observer.cpp
     src/ltv/ltv_observer.cpp
@@ -101,6 +102,8 @@ if(BUILD_TESTING)
     target_include_directories(test_ltv_velocity_factor PRIVATE src)
     target_link_libraries(test_ltv_velocity_factor ${CERES_LIBRARIES})
   endif()
+  add_test(NAME test_evaluate_vins_euroc
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_evaluate_vins_euroc.py)
 endif()
 
 # added from DEBUG
