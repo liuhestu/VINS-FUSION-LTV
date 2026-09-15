@@ -14,8 +14,11 @@ equation given by the paper.
 
 VINS supplies `R_BC=RIC[0]`, `p_BC=TIC[0]`, normalized camera0 coordinates,
 and the latest completed accelerometer/gyroscope bias estimates. The observer
-is a passive one-way branch and does not alter preintegration, reprojection,
-optimization, marginalization, or feature tracking.
+is a one-way branch and does not alter preintegration, reprojection,
+marginalization, or feature tracking. When `ltv_enable_gravity_factor` is set,
+the optimizer receives frozen, timestamp-matched observer snapshots through a
+weak gravity-direction factor. The first implementation deliberately does not
+retain this factor in the marginalization prior.
 
 The practical implementation caps and dynamically replaces landmarks, so the
 paper's fixed-landmark and persistence-of-excitation assumptions do not apply
@@ -23,3 +26,7 @@ unchanged. If observer snapshots are later used as optimizer factors, they are
 also correlated with the existing VINS measurements; their covariance must not
 be treated as that of an independent sensor and the combined system does not
 inherit the paper's GES/AGAS guarantees.
+
+The gravity factor is correlated with the original VINS IMU and visual
+measurements. Its configured sigma is an engineering regularization weight,
+not an independent sensor covariance.

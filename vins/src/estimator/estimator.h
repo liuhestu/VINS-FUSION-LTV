@@ -29,6 +29,7 @@
 #include "../initial/initial_alignment.h"
 #include "../initial/initial_ex_rotation.h"
 #include "../factor/imu_factor.h"
+#include "../factor/ltv_gravity_factor.h"
 #include "../factor/pose_local_parameterization.h"
 #include "../factor/marginalization_factor.h"
 #include "../factor/projectionTwoFrameOneCamFactor.h"
@@ -88,6 +89,8 @@ class Estimator
     void initFirstIMUPose(vector<pair<double, Eigen::Vector3d>> &accVector);
     void processLtvImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image,
                          double frame_timestamp);
+    bool ltvGravityFactorEligible(int index) const;
+    void updateLtvGravityDiagnostics(int index);
 
     enum SolverFlag
     {
@@ -150,6 +153,7 @@ class Estimator
 
     ltv::LtvObserver ltv_observer;
     ltv::LtvCsvLogger ltv_csv_logger;
+    ltv::LtvConfig ltv_config;
     ltv::LtvSnapshot latest_ltv_snapshot;
     ltv::LtvSnapshotWindow<WINDOW_SIZE + 1> ltv_snapshot_window;
 

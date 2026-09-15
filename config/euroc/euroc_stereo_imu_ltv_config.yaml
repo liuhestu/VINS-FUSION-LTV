@@ -67,6 +67,7 @@ save_image: 1
 # starting point and are deliberately configurable for dataset tuning.
 ltv_enable: 1
 ltv_log_debug: 1
+ltv_enable_gravity_factor: 0
 ltv_debug_csv_path: "~/output/ltv_debug.csv"
 ltv_max_features: 30
 ltv_min_features: 15
@@ -88,3 +89,6 @@ ltv_camera_euler_safety: 0.5
 ltv_max_camera_substeps: 100
 ltv_gravity_norm_min: 7.0
 ltv_gravity_norm_max: 12.0
+ltv_gravity_sigma_deg: 10.0
+ltv_gravity_huber_delta: 2.0
+ltv_snapshot_max_time_error: 0.005

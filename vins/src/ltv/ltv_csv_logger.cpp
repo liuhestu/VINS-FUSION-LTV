@@ -35,7 +35,10 @@ void LtvCsvLogger::configure(bool enabled, const std::string &path)
                    "gravity_body_x,gravity_body_y,gravity_body_z,gravity_norm,"
                    "innovation_norm,covariance_trace,covariance_min_diagonal,"
                    "covariance_max_diagonal,healthy_camera_updates,valid,"
-                   "velocity_valid,gravity_valid,update_time_ms,camera_substeps,reset_reason\n";
+                   "velocity_valid,gravity_valid,update_time_ms,camera_substeps,reset_reason,"
+                   "snapshot_time_error,gravity_angle_ltv_vs_vins_deg,"
+                   "gravity_factor_residual_norm,gravity_factor_weighted_residual_norm,"
+                   "gravity_factor_added\n";
     }
 }
 
@@ -62,7 +65,12 @@ void LtvCsvLogger::write(const LtvSnapshot &snapshot)
             << snapshot.valid << ',' << snapshot.velocity_valid << ','
             << snapshot.gravity_valid << ',' << snapshot.update_time_ms << ','
             << snapshot.camera_substeps << ','
-            << toString(snapshot.last_reset_reason) << '\n';
+            << toString(snapshot.last_reset_reason) << ','
+            << snapshot.snapshot_time_error << ','
+            << snapshot.gravity_angle_ltv_vs_vins << ','
+            << snapshot.gravity_factor_residual_norm << ','
+            << snapshot.gravity_factor_weighted_residual_norm << ','
+            << snapshot.gravity_factor_added << '\n';
     stream_.flush();
 }
 

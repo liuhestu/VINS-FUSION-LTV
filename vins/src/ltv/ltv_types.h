@@ -11,6 +11,7 @@ struct LtvConfig
 {
     bool enable = false;
     bool log_debug = false;
+    bool enable_gravity_factor = false;
     int max_features = 30;
     int min_features = 15;
     int max_missed_frames = 2;
@@ -31,6 +32,9 @@ struct LtvConfig
     int max_camera_substeps = 100;
     double gravity_norm_min = 7.0;
     double gravity_norm_max = 12.0;
+    double gravity_sigma_deg = 10.0;
+    double gravity_huber_delta = 2.0;
+    double snapshot_max_time_error = 0.005;
     std::string debug_csv_path;
 };
 
@@ -87,6 +91,11 @@ struct LtvSnapshot
     double update_time_ms = 0.0;
     int camera_substeps = 0;
     LtvResetReason last_reset_reason = LtvResetReason::None;
+    double snapshot_time_error = 0.0;
+    double gravity_angle_ltv_vs_vins = 0.0;
+    double gravity_factor_residual_norm = 0.0;
+    double gravity_factor_weighted_residual_norm = 0.0;
+    bool gravity_factor_added = false;
 };
 
 } // namespace ltv

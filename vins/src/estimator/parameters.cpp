@@ -71,6 +71,7 @@ void readLtvConfig(const cv::FileStorage &settings)
     LTV_CONFIG = ltv::LtvConfig{};
     readOptional(settings, "ltv_enable", LTV_CONFIG.enable);
     readOptional(settings, "ltv_log_debug", LTV_CONFIG.log_debug);
+    readOptional(settings, "ltv_enable_gravity_factor", LTV_CONFIG.enable_gravity_factor);
     readOptional(settings, "ltv_max_features", LTV_CONFIG.max_features);
     readOptional(settings, "ltv_min_features", LTV_CONFIG.min_features);
     readOptional(settings, "ltv_feature_max_missed_frames", LTV_CONFIG.max_missed_frames);
@@ -91,6 +92,9 @@ void readLtvConfig(const cv::FileStorage &settings)
     readOptional(settings, "ltv_max_camera_substeps", LTV_CONFIG.max_camera_substeps);
     readOptional(settings, "ltv_gravity_norm_min", LTV_CONFIG.gravity_norm_min);
     readOptional(settings, "ltv_gravity_norm_max", LTV_CONFIG.gravity_norm_max);
+    readOptional(settings, "ltv_gravity_sigma_deg", LTV_CONFIG.gravity_sigma_deg);
+    readOptional(settings, "ltv_gravity_huber_delta", LTV_CONFIG.gravity_huber_delta);
+    readOptional(settings, "ltv_snapshot_max_time_error", LTV_CONFIG.snapshot_max_time_error);
     readOptional(settings, "ltv_debug_csv_path", LTV_CONFIG.debug_csv_path);
 }
 

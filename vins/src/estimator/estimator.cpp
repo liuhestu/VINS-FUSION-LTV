@@ -10,6 +10,9 @@
 #include "estimator.h"
 #include "../utility/visualization.h"
 
+#include <algorithm>
+#include <cmath>
+
 Estimator::Estimator(): f_manager{Rs}
 {
     ROS_INFO("init begins");
@@ -122,12 +125,27 @@ void Estimator::setParameter()
     cout << "set g " << g.transpose() << endl;
     featureTracker.readIntrinsicParameter(CAM_NAMES);
 
-    ltv::LtvConfig effective_ltv_config = LTV_CONFIG;
+    ltv_config = LTV_CONFIG;
     if (!USE_IMU || NUM_OF_CAM < 1)
-        effective_ltv_config.enable = false;
-    ltv_observer.configure(effective_ltv_config);
-    ltv_csv_logger.configure(effective_ltv_config.enable && effective_ltv_config.log_debug,
-                             effective_ltv_config.debug_csv_path);
+        ltv_config.enable = false;
+    ltv_config.min_features = std::max(1, std::min(ltv_config.min_features,
+                                                   ltv_config.max_features));
+    if (!ltv_config.enable)
+        ltv_config.enable_gravity_factor = false;
+    if (ltv_config.enable_gravity_factor &&
+        (!std::isfinite(ltv_config.gravity_sigma_deg) ||
+         ltv_config.gravity_sigma_deg <= 0.0 ||
+         !std::isfinite(ltv_config.gravity_huber_delta) ||
+         ltv_config.gravity_huber_delta <= 0.0 ||
+         !std::isfinite(ltv_config.snapshot_max_time_error) ||
+         ltv_config.snapshot_max_time_error < 0.0))
+    {
+        ROS_WARN("invalid LTV gravity factor configuration; disabling gravity factor");
+        ltv_config.enable_gravity_factor = false;
+    }
+    ltv_observer.configure(ltv_config);
+    ltv_csv_logger.configure(ltv_config.enable && ltv_config.log_debug,
+                             ltv_config.debug_csv_path);
 
     std::cout << "MULTIPLE_THREAD is " << MULTIPLE_THREAD << '\n';
     if (MULTIPLE_THREAD && !initThreadFlag)
@@ -502,7 +520,58 @@ void Estimator::processLtvImage(
     latest_ltv_snapshot = ltv_observer.updateFeatures(
         frame_timestamp, imu_timestamp, observations, ric[0], tic[0]);
     ltv_snapshot_window[frame_count] = latest_ltv_snapshot;
-    ltv_csv_logger.write(latest_ltv_snapshot);
+}
+
+bool Estimator::ltvGravityFactorEligible(int index) const
+{
+    if (!ltv_config.enable || !ltv_config.enable_gravity_factor ||
+        index < 0 || index > frame_count || index > WINDOW_SIZE)
+    {
+        return false;
+    }
+
+    const ltv::LtvSnapshot &snapshot = ltv_snapshot_window[index];
+    const double gravity_norm = snapshot.gravity_body.norm();
+    return snapshot.valid && snapshot.gravity_valid &&
+           snapshot.last_reset_reason == ltv::LtvResetReason::None &&
+           snapshot.observed_features >= ltv_config.min_features &&
+           std::isfinite(snapshot.frame_timestamp) &&
+           std::isfinite(Headers[index]) &&
+           std::abs(snapshot.frame_timestamp - Headers[index]) <=
+               ltv_config.snapshot_max_time_error &&
+           snapshot.gravity_body.allFinite() &&
+           gravity_norm >= ltv_config.gravity_norm_min &&
+           gravity_norm <= ltv_config.gravity_norm_max &&
+           g.allFinite() && g.norm() > 1e-12;
+}
+
+void Estimator::updateLtvGravityDiagnostics(int index)
+{
+    ltv::LtvSnapshot &snapshot = ltv_snapshot_window[index];
+    snapshot.snapshot_time_error =
+        std::abs(snapshot.frame_timestamp - Headers[index]);
+    snapshot.gravity_factor_added = ltvGravityFactorEligible(index);
+
+    if (snapshot.gravity_valid && snapshot.gravity_body.allFinite() &&
+        snapshot.gravity_body.norm() > 1e-12 && g.allFinite() && g.norm() > 1e-12)
+    {
+        const Eigen::Vector3d direction_vins =
+            Rs[index].transpose() * (-g.normalized());
+        const Eigen::Vector3d direction_ltv = snapshot.gravity_body.normalized();
+        const double cosine = std::max(-1.0, std::min(1.0,
+            direction_vins.dot(direction_ltv)));
+        snapshot.gravity_angle_ltv_vs_vins = std::acos(cosine) * 180.0 / M_PI;
+        snapshot.gravity_factor_residual_norm =
+            (direction_vins - direction_ltv).norm();
+        const double sigma_radians = ltv_config.gravity_sigma_deg * M_PI / 180.0;
+        if (std::isfinite(sigma_radians) && sigma_radians > 0.0)
+        {
+            snapshot.gravity_factor_weighted_residual_norm =
+                snapshot.gravity_factor_residual_norm / sigma_radians;
+        }
+    }
+
+    latest_ltv_snapshot = snapshot;
 }
 
 void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, const double header)
@@ -532,6 +601,8 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
     // Passive one-way branch: freeze the LTV output before this frame's VINS
     // optimization. The optimizer does not feed back into this camera update.
     processLtvImage(image, header);
+    updateLtvGravityDiagnostics(frame_count);
+    ltv_csv_logger.write(latest_ltv_snapshot);
 
     ImageFrame imageframe(image, header);
     imageframe.pre_integration = tmp_pre_integration;
@@ -1173,6 +1244,38 @@ void Estimator::optimization()
         }
     }
 
+    int ltv_gravity_factor_count = 0;
+    double ltv_gravity_cost_before = 0.0;
+    ceres::LossFunction *ltv_gravity_loss_function = nullptr;
+    const double ltv_gravity_sigma_radians =
+        ltv_config.gravity_sigma_deg * M_PI / 180.0;
+    for (int i = 0; i < frame_count + 1; ++i)
+    {
+        if (!ltvGravityFactorEligible(i))
+            continue;
+
+        if (ltv_gravity_loss_function == nullptr)
+        {
+            ltv_gravity_loss_function =
+                new ceres::HuberLoss(ltv_config.gravity_huber_delta);
+        }
+        const ltv::LtvSnapshot &snapshot = ltv_snapshot_window[i];
+        LtvGravityFactor *gravity_factor = new LtvGravityFactor(
+            snapshot.gravity_body, -g, ltv_gravity_sigma_radians);
+        problem.AddResidualBlock(gravity_factor, ltv_gravity_loss_function, para_Pose[i]);
+
+        const Eigen::Quaterniond rotation_world_body(
+            para_Pose[i][6], para_Pose[i][3], para_Pose[i][4], para_Pose[i][5]);
+        Eigen::Vector3d weighted_residual;
+        if (LtvGravityFactor::computeResidual(
+                rotation_world_body, snapshot.gravity_body, -g,
+                1.0 / ltv_gravity_sigma_radians, weighted_residual))
+        {
+            ltv_gravity_cost_before += 0.5 * weighted_residual.squaredNorm();
+        }
+        ++ltv_gravity_factor_count;
+    }
+
     int f_m_cnt = 0;
     int feature_index = -1;
     for (auto &it_per_id : f_manager.feature)
@@ -1249,6 +1352,25 @@ void Estimator::optimization()
     //cout << summary.BriefReport() << endl;
     ROS_DEBUG("Iterations : %d", static_cast<int>(summary.iterations.size()));
     //printf("solver costs: %f \n", t_solver.toc());
+
+    double ltv_gravity_cost_after = 0.0;
+    for (int i = 0; i < frame_count + 1; ++i)
+    {
+        if (!ltvGravityFactorEligible(i))
+            continue;
+        const ltv::LtvSnapshot &snapshot = ltv_snapshot_window[i];
+        const Eigen::Quaterniond rotation_world_body(
+            para_Pose[i][6], para_Pose[i][3], para_Pose[i][4], para_Pose[i][5]);
+        Eigen::Vector3d weighted_residual;
+        if (LtvGravityFactor::computeResidual(
+                rotation_world_body, snapshot.gravity_body, -g,
+                1.0 / ltv_gravity_sigma_radians, weighted_residual))
+        {
+            ltv_gravity_cost_after += 0.5 * weighted_residual.squaredNorm();
+        }
+    }
+    ROS_DEBUG("LTV gravity factors: %d, cost before: %.6f, cost after: %.6f",
+              ltv_gravity_factor_count, ltv_gravity_cost_before, ltv_gravity_cost_after);
 
     double2vector();
     //printf("frame_count: %d \n", frame_count);
