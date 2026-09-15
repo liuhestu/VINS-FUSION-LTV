@@ -12,6 +12,7 @@ struct LtvConfig
     bool enable = false;
     bool log_debug = false;
     bool enable_gravity_factor = false;
+    bool enable_velocity_factor = false;
     int max_features = 30;
     int min_features = 15;
     int max_missed_frames = 2;
@@ -34,6 +35,8 @@ struct LtvConfig
     double gravity_norm_max = 12.0;
     double gravity_sigma_deg = 10.0;
     double gravity_huber_delta = 2.0;
+    double velocity_sigma_mps = 1.0;
+    double velocity_huber_delta = 2.0;
     double snapshot_max_time_error = 0.005;
     std::string debug_csv_path;
 };
@@ -96,6 +99,11 @@ struct LtvSnapshot
     double gravity_factor_residual_norm = 0.0;
     double gravity_factor_weighted_residual_norm = 0.0;
     bool gravity_factor_added = false;
+    Eigen::Vector3d vins_velocity_body = Eigen::Vector3d::Zero();
+    Eigen::Vector3d velocity_factor_residual = Eigen::Vector3d::Zero();
+    double velocity_factor_residual_norm = 0.0;
+    double velocity_factor_weighted_residual_norm = 0.0;
+    bool velocity_factor_added = false;
 };
 
 } // namespace ltv

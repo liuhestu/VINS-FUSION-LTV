@@ -30,6 +30,7 @@
 #include "../initial/initial_ex_rotation.h"
 #include "../factor/imu_factor.h"
 #include "../factor/ltv_gravity_factor.h"
+#include "../factor/ltv_velocity_factor.h"
 #include "../factor/pose_local_parameterization.h"
 #include "../factor/marginalization_factor.h"
 #include "../factor/projectionTwoFrameOneCamFactor.h"
@@ -90,7 +91,8 @@ class Estimator
     void processLtvImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image,
                          double frame_timestamp);
     bool ltvGravityFactorEligible(int index) const;
-    void updateLtvGravityDiagnostics(int index);
+    bool ltvVelocityFactorEligible(int index) const;
+    void updateLtvFactorDiagnostics(int index);
 
     enum SolverFlag
     {

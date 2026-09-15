@@ -545,12 +545,36 @@ bool Estimator::ltvGravityFactorEligible(int index) const
            g.allFinite() && g.norm() > 1e-12;
 }
 
-void Estimator::updateLtvGravityDiagnostics(int index)
+bool Estimator::ltvVelocityFactorEligible(int index) const
+{
+    if (!USE_IMU || !ltv_config.enable || !ltv_config.enable_velocity_factor ||
+        index < 0 || index > frame_count || index > WINDOW_SIZE ||
+        !std::isfinite(ltv_config.velocity_sigma_mps) ||
+        ltv_config.velocity_sigma_mps <= 0.0 ||
+        !std::isfinite(ltv_config.velocity_huber_delta) ||
+        ltv_config.velocity_huber_delta <= 0.0)
+    {
+        return false;
+    }
+
+    const ltv::LtvSnapshot &snapshot = ltv_snapshot_window[index];
+    return snapshot.valid && snapshot.velocity_valid &&
+           snapshot.last_reset_reason == ltv::LtvResetReason::None &&
+           snapshot.observed_features >= ltv_config.min_features &&
+           std::isfinite(snapshot.frame_timestamp) &&
+           std::isfinite(Headers[index]) &&
+           std::abs(snapshot.frame_timestamp - Headers[index]) <=
+               ltv_config.snapshot_max_time_error &&
+           snapshot.velocity_body.allFinite();
+}
+
+void Estimator::updateLtvFactorDiagnostics(int index)
 {
     ltv::LtvSnapshot &snapshot = ltv_snapshot_window[index];
     snapshot.snapshot_time_error =
         std::abs(snapshot.frame_timestamp - Headers[index]);
     snapshot.gravity_factor_added = ltvGravityFactorEligible(index);
+    snapshot.velocity_factor_added = ltvVelocityFactorEligible(index);
 
     if (snapshot.gravity_valid && snapshot.gravity_body.allFinite() &&
         snapshot.gravity_body.norm() > 1e-12 && g.allFinite() && g.norm() > 1e-12)
@@ -568,6 +592,22 @@ void Estimator::updateLtvGravityDiagnostics(int index)
         {
             snapshot.gravity_factor_weighted_residual_norm =
                 snapshot.gravity_factor_residual_norm / sigma_radians;
+        }
+    }
+
+    if (snapshot.velocity_valid && snapshot.velocity_body.allFinite() &&
+        Rs[index].allFinite() && Vs[index].allFinite())
+    {
+        snapshot.vins_velocity_body = Rs[index].transpose() * Vs[index];
+        snapshot.velocity_factor_residual =
+            snapshot.vins_velocity_body - snapshot.velocity_body;
+        snapshot.velocity_factor_residual_norm =
+            snapshot.velocity_factor_residual.norm();
+        if (std::isfinite(ltv_config.velocity_sigma_mps) &&
+            ltv_config.velocity_sigma_mps > 0.0)
+        {
+            snapshot.velocity_factor_weighted_residual_norm =
+                snapshot.velocity_factor_residual_norm / ltv_config.velocity_sigma_mps;
         }
     }
 
@@ -601,7 +641,7 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
     // Passive one-way branch: freeze the LTV output before this frame's VINS
     // optimization. The optimizer does not feed back into this camera update.
     processLtvImage(image, header);
-    updateLtvGravityDiagnostics(frame_count);
+    updateLtvFactorDiagnostics(frame_count);
     ltv_csv_logger.write(latest_ltv_snapshot);
 
     ImageFrame imageframe(image, header);
@@ -1276,6 +1316,39 @@ void Estimator::optimization()
         ++ltv_gravity_factor_count;
     }
 
+    int ltv_velocity_factor_count = 0;
+    double ltv_velocity_cost_before = 0.0;
+    ceres::LossFunction *ltv_velocity_loss_function = nullptr;
+    for (int i = 0; i < frame_count + 1; ++i)
+    {
+        if (!ltvVelocityFactorEligible(i))
+            continue;
+
+        if (ltv_velocity_loss_function == nullptr)
+        {
+            ltv_velocity_loss_function =
+                new ceres::HuberLoss(ltv_config.velocity_huber_delta);
+        }
+        const ltv::LtvSnapshot &snapshot = ltv_snapshot_window[i];
+        LtvVelocityFactor *velocity_factor = new LtvVelocityFactor(
+            snapshot.velocity_body, ltv_config.velocity_sigma_mps);
+        problem.AddResidualBlock(velocity_factor, ltv_velocity_loss_function,
+                                 para_Pose[i], para_SpeedBias[i]);
+
+        const Eigen::Quaterniond rotation_world_body(
+            para_Pose[i][6], para_Pose[i][3], para_Pose[i][4], para_Pose[i][5]);
+        const Eigen::Vector3d velocity_world(
+            para_SpeedBias[i][0], para_SpeedBias[i][1], para_SpeedBias[i][2]);
+        Eigen::Vector3d weighted_residual;
+        if (LtvVelocityFactor::computeResidual(
+                rotation_world_body, velocity_world, snapshot.velocity_body,
+                1.0 / ltv_config.velocity_sigma_mps, weighted_residual))
+        {
+            ltv_velocity_cost_before += 0.5 * weighted_residual.squaredNorm();
+        }
+        ++ltv_velocity_factor_count;
+    }
+
     int f_m_cnt = 0;
     int feature_index = -1;
     for (auto &it_per_id : f_manager.feature)
@@ -1371,6 +1444,27 @@ void Estimator::optimization()
     }
     ROS_DEBUG("LTV gravity factors: %d, cost before: %.6f, cost after: %.6f",
               ltv_gravity_factor_count, ltv_gravity_cost_before, ltv_gravity_cost_after);
+
+    double ltv_velocity_cost_after = 0.0;
+    for (int i = 0; i < frame_count + 1; ++i)
+    {
+        if (!ltvVelocityFactorEligible(i))
+            continue;
+        const ltv::LtvSnapshot &snapshot = ltv_snapshot_window[i];
+        const Eigen::Quaterniond rotation_world_body(
+            para_Pose[i][6], para_Pose[i][3], para_Pose[i][4], para_Pose[i][5]);
+        const Eigen::Vector3d velocity_world(
+            para_SpeedBias[i][0], para_SpeedBias[i][1], para_SpeedBias[i][2]);
+        Eigen::Vector3d weighted_residual;
+        if (LtvVelocityFactor::computeResidual(
+                rotation_world_body, velocity_world, snapshot.velocity_body,
+                1.0 / ltv_config.velocity_sigma_mps, weighted_residual))
+        {
+            ltv_velocity_cost_after += 0.5 * weighted_residual.squaredNorm();
+        }
+    }
+    ROS_DEBUG("LTV velocity factors: %d, cost before: %.6f, cost after: %.6f",
+              ltv_velocity_factor_count, ltv_velocity_cost_before, ltv_velocity_cost_after);
 
     double2vector();
     //printf("frame_count: %d \n", frame_count);

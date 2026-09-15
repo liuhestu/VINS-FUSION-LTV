@@ -30,3 +30,8 @@ inherit the paper's GES/AGAS guarantees.
 The gravity factor is correlated with the original VINS IMU and visual
 measurements. Its configured sigma is an engineering regularization weight,
 not an independent sensor covariance.
+
+The optional velocity factor compares the observer's body-frame velocity to
+the VINS world-frame velocity transformed into the body frame. It is subject
+to the same correlation limitation, remains disabled by default, and is not
+retained in the marginalization prior during the initial validation stage.

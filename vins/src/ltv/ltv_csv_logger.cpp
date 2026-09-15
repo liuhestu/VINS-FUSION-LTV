@@ -38,7 +38,11 @@ void LtvCsvLogger::configure(bool enabled, const std::string &path)
                    "velocity_valid,gravity_valid,update_time_ms,camera_substeps,reset_reason,"
                    "snapshot_time_error,gravity_angle_ltv_vs_vins_deg,"
                    "gravity_factor_residual_norm,gravity_factor_weighted_residual_norm,"
-                   "gravity_factor_added\n";
+                   "gravity_factor_added,vins_velocity_body_x,vins_velocity_body_y,"
+                   "vins_velocity_body_z,velocity_factor_residual_x,"
+                   "velocity_factor_residual_y,velocity_factor_residual_z,"
+                   "velocity_factor_residual_norm,"
+                   "velocity_factor_weighted_residual_norm,velocity_factor_added\n";
     }
 }
 
@@ -70,7 +74,16 @@ void LtvCsvLogger::write(const LtvSnapshot &snapshot)
             << snapshot.gravity_angle_ltv_vs_vins << ','
             << snapshot.gravity_factor_residual_norm << ','
             << snapshot.gravity_factor_weighted_residual_norm << ','
-            << snapshot.gravity_factor_added << '\n';
+            << snapshot.gravity_factor_added << ','
+            << snapshot.vins_velocity_body.x() << ','
+            << snapshot.vins_velocity_body.y() << ','
+            << snapshot.vins_velocity_body.z() << ','
+            << snapshot.velocity_factor_residual.x() << ','
+            << snapshot.velocity_factor_residual.y() << ','
+            << snapshot.velocity_factor_residual.z() << ','
+            << snapshot.velocity_factor_residual_norm << ','
+            << snapshot.velocity_factor_weighted_residual_norm << ','
+            << snapshot.velocity_factor_added << '\n';
     stream_.flush();
 }
 
