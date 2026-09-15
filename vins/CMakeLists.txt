@@ -104,6 +104,8 @@ if(BUILD_TESTING)
   endif()
   add_test(NAME test_evaluate_vins_euroc
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_evaluate_vins_euroc.py)
+  add_test(NAME test_analyze_euroc_asl_velocity
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_analyze_euroc_asl_velocity.py)
 endif()
 
 # added from DEBUG
