@@ -80,6 +80,10 @@ if(BUILD_TESTING)
   if(TARGET test_ltv_observer)
     target_include_directories(test_ltv_observer PRIVATE src)
   endif()
+  ament_add_gtest(test_ltv_snapshot test/test_ltv_snapshot.cpp)
+  if(TARGET test_ltv_snapshot)
+    target_include_directories(test_ltv_snapshot PRIVATE src)
+  endif()
 endif()
 
 # added from DEBUG

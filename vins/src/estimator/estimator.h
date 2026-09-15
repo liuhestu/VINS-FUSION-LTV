@@ -37,6 +37,7 @@
 #include "../featureTracker/feature_tracker.h"
 #include "../ltv/ltv_observer.h"
 #include "../ltv/ltv_csv_logger.h"
+#include "../ltv/ltv_snapshot_window.h"
 
 #define ROS_INFO RCUTILS_LOG_INFO
 #define ROS_WARN RCUTILS_LOG_WARN
@@ -150,6 +151,7 @@ class Estimator
     ltv::LtvObserver ltv_observer;
     ltv::LtvCsvLogger ltv_csv_logger;
     ltv::LtvSnapshot latest_ltv_snapshot;
+    ltv::LtvSnapshotWindow<WINDOW_SIZE + 1> ltv_snapshot_window;
 
     bool first_imu;
     bool is_valid, is_key;

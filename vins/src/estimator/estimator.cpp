@@ -97,6 +97,7 @@ void Estimator::clearState()
     ltv_observer.reset(ltv::LtvResetReason::EstimatorReset);
     ltv_csv_logger.close();
     latest_ltv_snapshot = ltv::LtvSnapshot{};
+    ltv_snapshot_window.clear();
 
     failure_occur = 0;
 
@@ -472,6 +473,8 @@ void Estimator::processLtvImage(
     const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image,
     double frame_timestamp)
 {
+    latest_ltv_snapshot = ltv::LtvSnapshot{};
+    ltv_snapshot_window[frame_count] = latest_ltv_snapshot;
     if (!ltv_observer.enabled() || solver_flag != NON_LINEAR)
         return;
 
@@ -498,6 +501,7 @@ void Estimator::processLtvImage(
 
     latest_ltv_snapshot = ltv_observer.updateFeatures(
         frame_timestamp, imu_timestamp, observations, ric[0], tic[0]);
+    ltv_snapshot_window[frame_count] = latest_ltv_snapshot;
     ltv_csv_logger.write(latest_ltv_snapshot);
 }
 
@@ -1479,6 +1483,7 @@ void Estimator::slideWindow()
             Headers[WINDOW_SIZE] = Headers[WINDOW_SIZE - 1];
             Ps[WINDOW_SIZE] = Ps[WINDOW_SIZE - 1];
             Rs[WINDOW_SIZE] = Rs[WINDOW_SIZE - 1];
+            ltv_snapshot_window.slideOld();
 
             if(USE_IMU)
             {
@@ -1513,6 +1518,7 @@ void Estimator::slideWindow()
             Headers[frame_count - 1] = Headers[frame_count];
             Ps[frame_count - 1] = Ps[frame_count];
             Rs[frame_count - 1] = Rs[frame_count];
+            ltv_snapshot_window.slideSecondNewest();
 
             if(USE_IMU)
             {
