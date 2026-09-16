@@ -33,6 +33,32 @@ ROS 2 bag: /home/he/datasets/euroc/<sequence>_db
 
 输出放在 `/home/he/output/ltv_stage4/<sequence>/<mode>/`，不提交运行产物。
 
+## 测试流程
+
+1. Baseline / Passive LTV 全量 11 序列
+- ltv_enable=1
+- Gravity factor、Velocity factor、Quality Gate 均关闭
+- LTV 只记录 diagnostics，用这些日志冻结 Gate 阈值。
+- Passive LTV 的轨迹应与原始 Baseline（ltv_enable=0）字节级一致，因此可作为 VINS-Fusion 的等价基线；仍建议保留一次真正的 Baseline 对照验证。
+
+2. G_fixed 全量 11 序列
+- LTV 开启
+- Gravity factor 开启，固定 sigma_g=10°
+- Quality Gate、Velocity factor 关闭。
+
+3. G_gate 全量 11 序列
+- 与 G_fixed 完全相同
+- 仅打开 Quality Gate，使用第一轮日志一次性冻结的参数。
+- 不允许按某个困难序列结果再调阈值。
+
+这样最终比较的是：
+
+Baseline：原始 VINS-Fusion
+G_fixed：固定 Gravity factor 的收益/副作用
+G_gate：选择性加入 Gravity factor 后是否保留收益、抑制副作用
+
+Stage 4 全程应保持 Velocity factor 关闭。
+
 ## Gate 与日志
 
 现有 `ltvGravityFactorEligible()` 保留为基础 eligibility。新增 Quality Gate 只能在其结果为真时放行，并且默认关闭：
