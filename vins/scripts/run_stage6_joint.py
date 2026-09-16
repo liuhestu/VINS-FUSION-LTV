@@ -36,6 +36,12 @@ MODES = {
         "ltv_enable_gravity_quality_gate": "1",
         "ltv_enable_velocity_quality_gate": "1",
     },
+    "gravity_only": {
+        "ltv_enable_gravity_factor": "1",
+        "ltv_enable_velocity_factor": "0",
+        "ltv_enable_gravity_quality_gate": "1",
+        "ltv_enable_velocity_quality_gate": "0",
+    },
 }
 
 FROZEN_SETTINGS = {
@@ -182,6 +188,15 @@ def factor_diagnostics(path, mode):
             counts["gravity_factor_added_count"] != 0 or
             counts["velocity_factor_added_count"] != 0):
         raise RuntimeError("baseline added an LTV factor")
+    if mode == "gravity_only":
+        if counts["gravity_factor_added_count"] == 0:
+            raise RuntimeError("gravity_only mode added no gravity factors")
+        if (counts["gravity_factor_added_count"] !=
+                counts["gravity_gate_pass_count"]):
+            raise RuntimeError(
+                "gravity_only gravity factor/gate pass counts differ")
+        if counts["velocity_factor_added_count"] != 0:
+            raise RuntimeError("gravity_only mode added a velocity factor")
     if mode in ("joint", "joint_v_gate"):
         if counts["gravity_factor_added_count"] == 0:
             raise RuntimeError("joint mode added no gravity factors")

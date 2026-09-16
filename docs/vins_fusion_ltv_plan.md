@@ -22,7 +22,7 @@ $$
 }
 $$
 
-截至 Stage 6b 正式实验后的状态为：
+截至 Stage 6c 与全序列共同对齐复评后的状态为：
 
 ```text
 Stage 1  Passive LTV observer              ✅
@@ -31,15 +31,24 @@ Stage 3  Velocity factor                   ✅ 工程完成
 Stage 4  Gravity Quality Gate              ✅ 工程通过 / 效果未通过
 Stage 5  Velocity measurement Oracle       ✅ 负结果；只保留 V_fixed
 Stage 6  G_gate + V_fixed joint structure  ❌ 效果验收失败
-Stage 6b G_gate + online V_gate safety     ❌ 工程通过 / 安全性失败
+Stage 6b G_gate + online V_gate safety     ❌ 工程通过 / 共同对齐仍安全失败
+Stage 6c MH_01 Pitch failure diagnosis     ✅ alignment 敏感；长开非同步触发
 Stage 7  Joint tuning                      ⏸ 仅文档；未执行
 Stage 8  UZH-FPV held-out generalization   ⏸ 仅文档；未执行
 ```
 
 Stage 6 的失败来自 MH_01_easy Rotation RMSE 相对 B 退化 10.65%；随后独立 Stage 6b
-用在线 Heuristic Velocity Gate 替代 V_fixed，工程验收通过，但 MH_01_easy Rotation
-仍退化 14.21%，超过 3% 硬门槛。因此按预先规则停止，不执行 Stage 7；Stage 8 也只
-保留未来执行协议。详细数字与责任边界见 `stage_test_result.md`。
+用在线 Heuristic Velocity Gate 替代 V_fixed，工程验收通过。原 evaluator 因为分别用
+B/Joint 的全序列位置求对齐旋转，把 MH_01 Rotation 评为 +14.21%；全 11 序列统一使用
+各自 B 的对齐旋转复评后，MH_01 改为 -2.56%，但 V1_02_medium Rotation 变为
++12.76%，仍超过 3% 硬门槛。因此安全性结论仍失败，不执行 Stage 7；Stage 8 也只保留
+未来执行协议。详细数字与责任边界见 `stage_test_result.md`。
+
+Stage 6c 随后只对 MH_01 做 failure diagnosis。新增 G-only 控制表明，Stage 6b 的
+Pitch +34.29% 主要来自每条位置轨迹独立对齐所引入的旋转差；统一使用 B 的对齐旋转后，
+Joint Pitch RMSE 相对 B 改善 2.73%。最长 26.9 秒 V_gate-on 段内 Pitch 没有恶化，
+因此不支持“V_gate 长时间开启同步触发 Pitch failure”。后续全序列共同对齐审计更正了
+Stage 6b 的对应姿态栏与失败序列，但安全性仍不通过，也不授权进入 Stage 7。
 
 
 # 第一阶段：Passive LTV Observer —— 先证明 LTV 本身能工作。

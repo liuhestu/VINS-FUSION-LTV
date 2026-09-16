@@ -148,6 +148,10 @@ if(BUILD_TESTING)
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_build_stage5_oracle_mask.py)
   add_test(NAME test_run_stage6_joint
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_run_stage6_joint.py)
+  add_test(NAME test_diagnose_stage6c_mh01
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_diagnose_stage6c_mh01.py)
+  add_test(NAME test_audit_stage6b_common_alignment
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_audit_stage6b_common_alignment.py)
 endif()
 
 # added from DEBUG
