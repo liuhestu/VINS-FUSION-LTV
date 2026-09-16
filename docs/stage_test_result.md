@@ -420,12 +420,7 @@ Velocity RMSE 增益：
 - 所有 Oracle 的 mask miss 为 0，32 次正式回放均完整消费 canonical input，因而该
   结果不能归因于输入缺失或 mask lookup 失败。
 
-因此，对 Stage 5 当前**具体问题**的答案是否定的：在当前 LTV velocity、Velocity
-factor、`sigma_v=1.0 m/s` 和“Passive 时刻瞬时 body-velocity 更接近 GT”的 frozen
-gate 定义下，没有观察到约 3% 以上、跨困难序列一致且不损害其他主要指标的明显增益。
+因此，对 Stage 5 当前**Velocity factor 在 Oracle 选择性启用时，是否存在明显增益潜力**的答案是否定的：在当前 LTV velocity、Velocity factor、`sigma_v=1.0 m/s` 和“Passive 时刻瞬时 body-velocity 更接近 GT”的 frozen gate 定义下，没有观察到约 3% 以上、跨困难序列一致且不损害其他主要指标的明显增益。
 
-但这个结论有严格责任边界。当前 gate 是 measurement-accuracy hindsight gate，不是
-最终优化收益的理论 upper bound；factor 对滑窗状态和后续线性化的耦合解释了为何
-“局部 velocity 更准”仍可能使 ATE/Rotation 变差。因此本结果不支持沿**当前判据**继续
-设计在线 Velocity Quality Gate，也不能据此否定所有 optimization-benefit 或逐 factor
-反事实 Oracle。后者需要不同实验设计，且不属于本 Stage 5 的最小范围。
+但这个结论有严格责任边界。当前 gate 是 measurement-accuracy hindsight gate，不是最终优化收益的理论 upper bound；factor 对滑窗状态和后续线性化的耦合解释了为何
+“局部 velocity 更准”仍可能使 ATE/Rotation 变差。因此measurement-accuracy Oracle 验证失败，说明瞬时 velocity accuracy 不适合作为非学习式 Velocity Gate 判据。
