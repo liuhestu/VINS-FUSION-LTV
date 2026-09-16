@@ -14,6 +14,7 @@ struct LtvConfig
     bool enable_gravity_factor = false;
     bool enable_velocity_factor = false;
     bool enable_gravity_quality_gate = false;
+    bool enable_velocity_oracle_gate = false;
     int max_features = 30;
     int min_features = 15;
     int max_missed_frames = 2;
@@ -43,6 +44,8 @@ struct LtvConfig
     double velocity_sigma_mps = 1.0;
     double velocity_huber_delta = 2.0;
     double snapshot_max_time_error = 0.005;
+    std::string velocity_oracle_mask_path;
+    std::string velocity_oracle_mask_column = "oracle_0";
     std::string debug_csv_path;
 };
 
@@ -116,6 +119,10 @@ struct LtvSnapshot
     double velocity_factor_residual_norm = 0.0;
     double velocity_factor_weighted_residual_norm = 0.0;
     bool velocity_factor_added = false;
+    bool velocity_factor_base_eligible = false;
+    bool velocity_oracle_mask_loaded = false;
+    bool velocity_oracle_mask_hit = false;
+    bool velocity_oracle_pass = false;
 };
 
 } // namespace ltv

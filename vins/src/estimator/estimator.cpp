@@ -13,10 +13,13 @@
 #include <algorithm>
 #include <cmath>
 
-Estimator::Estimator(): f_manager{Rs}
+Estimator::Estimator(): f_manager{Rs}, tmp_pre_integration(nullptr),
+                       last_marginalization_info(nullptr)
 {
     ROS_INFO("init begins");
     initThreadFlag = false;
+    for (int i = 0; i < WINDOW_SIZE + 1; ++i)
+        pre_integrations[i] = nullptr;
     clearState();
 }
 
@@ -132,7 +135,11 @@ void Estimator::setParameter()
     ltv_config.min_features = std::max(1, std::min(ltv_config.min_features,
                                                    ltv_config.max_features));
     if (!ltv_config.enable)
+    {
         ltv_config.enable_gravity_factor = false;
+        ltv_config.enable_velocity_factor = false;
+        ltv_config.enable_velocity_oracle_gate = false;
+    }
     if (ltv_config.enable_gravity_factor &&
         (!std::isfinite(ltv_config.gravity_sigma_deg) ||
          ltv_config.gravity_sigma_deg <= 0.0 ||
@@ -156,6 +163,12 @@ void Estimator::setParameter()
     {
         ROS_WARN("invalid LTV gravity quality gate configuration; disabling quality gate");
         ltv_config.enable_gravity_quality_gate = false;
+    }
+    if (!velocity_oracle_gate.configure(ltv_config.enable_velocity_oracle_gate,
+                                        ltv_config.velocity_oracle_mask_path,
+                                        ltv_config.velocity_oracle_mask_column))
+    {
+        ROS_WARN("failed to load frozen LTV velocity Oracle mask; Oracle gate will fail closed");
     }
     ltv_observer.configure(ltv_config);
     ltv_csv_logger.configure(ltv_config.enable && ltv_config.log_debug,
@@ -227,7 +240,7 @@ void Estimator::inputImage(double t, const cv::Mat &_img, const cv::Mat &_img1)
     }
     
     if(MULTIPLE_THREAD)  
-    {     
+    {
         if(inputImageCnt % 2 == 0)
         {
             mBuf.lock();
@@ -274,6 +287,18 @@ void Estimator::inputFeature(double t, const map<int, vector<pair<int, Eigen::Ma
 
     if(!MULTIPLE_THREAD)
         processMeasurements();
+}
+
+bool Estimator::finishInputAndDrain()
+{
+    if (MULTIPLE_THREAD)
+    {
+        ROS_ERROR("offline drain requires multiple_thread: 0");
+        return false;
+    }
+    processMeasurements();
+    std::lock_guard<std::mutex> lock(mBuf);
+    return featureBuf.empty();
 }
 
 
@@ -567,9 +592,9 @@ bool Estimator::ltvGravityFactorEligible(int index) const
     return !ltv_config.enable_gravity_quality_gate || snapshot.gravity_gate_pass;
 }
 
-bool Estimator::ltvVelocityFactorEligible(int index) const
+bool Estimator::ltvVelocityFactorBaseEligible(int index) const
 {
-    if (!USE_IMU || !ltv_config.enable || !ltv_config.enable_velocity_factor ||
+    if (!USE_IMU || !ltv_config.enable ||
         index < 0 || index > frame_count || index > WINDOW_SIZE ||
         !std::isfinite(ltv_config.velocity_sigma_mps) ||
         ltv_config.velocity_sigma_mps <= 0.0 ||
@@ -588,6 +613,15 @@ bool Estimator::ltvVelocityFactorEligible(int index) const
            std::abs(snapshot.frame_timestamp - Headers[index]) <=
                ltv_config.snapshot_max_time_error &&
            snapshot.velocity_body.allFinite();
+}
+
+bool Estimator::ltvVelocityFactorEligible(int index) const
+{
+    if (!ltv_config.enable_velocity_factor || !ltvVelocityFactorBaseEligible(index))
+        return false;
+
+    const ltv::LtvSnapshot &snapshot = ltv_snapshot_window[index];
+    return !ltv_config.enable_velocity_oracle_gate || snapshot.velocity_oracle_pass;
 }
 
 void Estimator::updateLtvFactorDiagnostics(int index)
@@ -617,8 +651,6 @@ void Estimator::updateLtvFactorDiagnostics(int index)
         --gravity_gate_cooldown_frames_remaining;
     }
     snapshot.gravity_factor_added = ltvGravityFactorEligible(index);
-    snapshot.velocity_factor_added = ltvVelocityFactorEligible(index);
-
     if (snapshot.gravity_valid && snapshot.gravity_body.allFinite() &&
         snapshot.gravity_body.norm() > 1e-12 && g.allFinite() && g.norm() > 1e-12)
     {
@@ -653,6 +685,16 @@ void Estimator::updateLtvFactorDiagnostics(int index)
                 snapshot.velocity_factor_residual_norm / ltv_config.velocity_sigma_mps;
         }
     }
+
+    const bool velocity_base_eligible = ltvVelocityFactorBaseEligible(index);
+    const ltv::VelocityOracleGateDecision oracle_decision =
+        velocity_oracle_gate.evaluate(velocity_base_eligible,
+                                      snapshot.frame_timestamp);
+    snapshot.velocity_factor_base_eligible = velocity_base_eligible;
+    snapshot.velocity_oracle_mask_loaded = oracle_decision.loaded;
+    snapshot.velocity_oracle_mask_hit = oracle_decision.hit;
+    snapshot.velocity_oracle_pass = oracle_decision.pass;
+    snapshot.velocity_factor_added = ltvVelocityFactorEligible(index);
 
     latest_ltv_snapshot = snapshot;
 }

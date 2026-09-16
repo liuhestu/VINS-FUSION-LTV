@@ -70,6 +70,7 @@ ltv_log_debug: 1
 ltv_enable_gravity_factor: 0
 ltv_enable_velocity_factor: 0
 ltv_enable_gravity_quality_gate: 0
+ltv_enable_velocity_oracle_gate: 0
 ltv_debug_csv_path: "~/output/ltv_debug.csv"
 ltv_max_features: 30
 ltv_min_features: 15
@@ -100,3 +101,5 @@ ltv_gravity_gate_reset_cooldown_frames: 0
 ltv_velocity_sigma_mps: 1.0
 ltv_velocity_huber_delta: 2.0
 ltv_snapshot_max_time_error: 0.005
+ltv_velocity_oracle_mask_path: ""
+ltv_velocity_oracle_mask_column: "oracle_0"

@@ -19,6 +19,7 @@
 #include <opencv2/opencv.hpp>
 #include "estimator/estimator.h"
 #include "estimator/parameters.h"
+#include "utility/stereo_synchronizer.h"
 #include "utility/visualization.h"
 
 Estimator estimator;
@@ -28,6 +29,12 @@ queue<sensor_msgs::msg::PointCloud::ConstPtr> feature_buf;
 queue<sensor_msgs::msg::Image::ConstPtr> img0_buf;
 queue<sensor_msgs::msg::Image::ConstPtr> img1_buf;
 std::mutex m_buf;
+
+std::int64_t timestampNs(const builtin_interfaces::msg::Time &stamp)
+{
+    return static_cast<std::int64_t>(stamp.sec) * 1000000000LL +
+           static_cast<std::int64_t>(stamp.nanosec);
+}
 
 // header: 1403715278
 void img0_callback(const sensor_msgs::msg::Image::SharedPtr img_msg)
@@ -83,16 +90,15 @@ void sync_process()
             m_buf.lock();
             if (!img0_buf.empty() && !img1_buf.empty())
             {
-                double time0 = img0_buf.front()->header.stamp.sec + img0_buf.front()->header.stamp.nanosec * (1e-9);
-                double time1 = img1_buf.front()->header.stamp.sec + img1_buf.front()->header.stamp.nanosec * (1e-9);
-
-                // 0.003s sync tolerance
-                if(time0 < time1 - 0.003)
+                const auto decision = vins::classifyStereoTimestamps(
+                    timestampNs(img0_buf.front()->header.stamp),
+                    timestampNs(img1_buf.front()->header.stamp));
+                if(decision == vins::StereoSyncDecision::DropLeft)
                 {
                     img0_buf.pop();
                     printf("throw img0\n");
                 }
-                else if(time0 > time1 + 0.003)
+                else if(decision == vins::StereoSyncDecision::DropRight)
                 {
                     img1_buf.pop();
                     printf("throw img1\n");

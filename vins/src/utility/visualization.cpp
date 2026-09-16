@@ -50,6 +50,23 @@ void registerPub(rclcpp::Node::SharedPtr n)
     cameraposevisual.setLineWidth(0.01);
 }
 
+void unregisterPub()
+{
+    pub_image_track.reset();
+    pub_extrinsic.reset();
+    pub_keyframe_point.reset();
+    pub_keyframe_pose.reset();
+    pub_camera_pose_visual.reset();
+    pub_camera_pose.reset();
+    pub_key_poses.reset();
+    pub_margin_cloud.reset();
+    pub_point_cloud.reset();
+    pub_odometry.reset();
+    pub_path.reset();
+    pub_latest_odometry.reset();
+    path.poses.clear();
+}
+
 void pubLatestOdometry(const Eigen::Vector3d &P, const Eigen::Quaterniond &Q, const Eigen::Vector3d &V, double t)
 {
     nav_msgs::msg::Odometry odometry;

@@ -318,3 +318,114 @@ Gate 既没有在全部 frame 开启，也没有完全关闭；V2_03 的低覆�
 - 因此 Gate 目前仅作为默认关闭的诊断性条件弱约束；不据此进入 Stage 6 的
   Gravity 分支联合验证，需先针对困难序列重新校准或扩展 gate 特征。
 - Gravity factor 本身有信息增益，Gate 也确实能做选择性抑制，但是阈值没有选好。
+
+
+
+## Stage 5 — Velocity Oracle Gate
+
+本次严格按 `VINS-Fusion-LTV_Stage5_Velocity_Oracle_Gate执行文档.md`
+收紧范围，只比较 Passive reference、V_fixed、V_oracle_any_advantage 和
+V_oracle_margin_002；未开启 Gravity，未修改 Velocity residual/Jacobian、LTV 方程或
+marginalization，也未执行联合 factor、2×2 ablation、RL 或联合调参。
+
+模式名称说明：`V_oracle_any_advantage` 表示 `A=e_VINS-e_LTV>0`（runner 内部 ID：
+`v_oracle_0`）；`V_oracle_margin_002` 表示 `A>0.02 m/s`（内部 ID：
+`v_oracle_002`）。下文表格使用语义化名称；mask CSV 的列名仍保持 `oracle_0`、
+`oracle_002` 以兼容运行时配置。
+
+
+### Frozen Oracle mask
+
+mask 仅由 Passive reference + official GT 生成。Oracle replay 仅按 snapshot
+timestamp 精确查表，不读 GT、不做 nearest/interpolation，也不用 Oracle run
+自身状态重算 decision。
+
+| 序列 | valid reference snapshot | GT match / miss | max matched GT error | any advantage / margin 0.02 | positive advantage median / P90 |
+|---|---:|---:|---:|---:|---:|
+| V1_01_easy | 2,735 | 2,872 / 29 | 4.999936 ms | 22 / 8 | 0.01693 / 0.02283 m/s |
+| V1_03_difficult | 846 | 2,094 / 44 | 0.000256 ms | 18 / 14 | 0.03166 / 0.05346 m/s |
+| V2_03_difficult | 909 | 1,890 / 20 | 0.000256 ms | 0 / 0 | N/A |
+| MH_01_easy | 3,635 | 3,638 / 33 | 0.000256 ms | 465 / 0 | 0.01016 / 0.01519 m/s |
+| MH_02_easy | 2,990 | 2,999 / 30 | 0.000256 ms | 221 / 0 | 0.00544 / 0.00837 m/s |
+| MH_03_medium | 2,670 | 2,631 / 58 | 0.000256 ms | 187 / 26 | 0.00897 / 0.10651 m/s |
+| MH_04_difficult | 1,960 | 1,976 / 45 | 0.000256 ms | 36 / 16 | 0.02274 / 0.06971 m/s |
+| MH_05_difficult | 2,196 | 2,221 / 41 | 0.000256 ms | 39 / 1 | 0.00162 / 0.00380 m/s |
+
+Oracle 运行的 mask miss 全部为 0；实际加入 factor 数与当前运行的
+`base_eligible && oracle_pass` 数一致。MH 的 any-advantage / margin-0.02 factor 数分别为
+MH_01 `465/0`、MH_02 `221/0`、MH_03 `187/26`、MH_04 `36/16`、
+MH_05 `39/1`。MH_01/MH_02 的 margin-0.02 因无 pass 点而与 Passive 完全一致。
+
+### Official GT 指标
+
+| 序列 | 模式 | Velocity RMSE (m/s) | P95 (m/s) | max (m/s) | ATE RMSE (m) | Rotation RMSE (deg) |
+|---|---|---:|---:|---:|---:|---:|
+| V1_01 | Passive | 0.033174 | 0.058023 | 0.096377 | 0.126207 | 6.70357 |
+| V1_01 | V_fixed | 0.033259 | 0.058769 | 0.088814 | 0.124125 | 6.77790 |
+| V1_01 | V_oracle_any_advantage | 0.033174 | 0.058023 | 0.096377 | 0.126206 | 6.70356 |
+| V1_01 | V_oracle_margin_002 | 0.033174 | 0.058023 | 0.096377 | 0.126207 | 6.70357 |
+| V1_03 | Passive | 0.087199 | 0.174761 | 0.367287 | 0.160582 | 6.89629 |
+| V1_03 | V_fixed | 0.087147 | 0.168852 | 0.371378 | 0.171710 | 7.16734 |
+| V1_03 | V_oracle_any_advantage | 0.089223 | 0.176065 | 0.369695 | 0.166623 | 7.06044 |
+| V1_03 | V_oracle_margin_002 | 0.089359 | 0.176880 | 0.373356 | 0.164695 | 7.06247 |
+| V2_03 | Passive | 0.087891 | 0.180064 | 0.339329 | 0.334255 | 6.44686 |
+| V2_03 | V_fixed | 0.085872 | 0.170275 | 0.335001 | 0.317372 | 6.18295 |
+| V2_03 | V_oracle_any_advantage | 0.087891 | 0.180064 | 0.339329 | 0.334255 | 6.44686 |
+| V2_03 | V_oracle_margin_002 | 0.087891 | 0.180064 | 0.339329 | 0.334255 | 6.44686 |
+| MH_01 | Passive | 0.036554 | 0.067823 | 0.123197 | 0.269967 | 2.35540 |
+| MH_01 | V_fixed | 0.037645 | 0.069453 | 0.115387 | 0.279788 | 2.87614 |
+| MH_01 | V_oracle_any_advantage | 0.036545 | 0.067914 | 0.119021 | 0.253809 | 2.47427 |
+| MH_01 | V_oracle_margin_002 | 0.036554 | 0.067823 | 0.123197 | 0.269967 | 2.35540 |
+| MH_02 | Passive | 0.034854 | 0.065625 | 0.128128 | 0.194630 | 1.89043 |
+| MH_02 | V_fixed | 0.035197 | 0.065550 | 0.124771 | 0.196772 | 1.88168 |
+| MH_02 | V_oracle_any_advantage | 0.035263 | 0.066199 | 0.129753 | 0.192189 | 1.93602 |
+| MH_02 | V_oracle_margin_002 | 0.034854 | 0.065625 | 0.128128 | 0.194630 | 1.89043 |
+| MH_03 | Passive | 0.069108 | 0.138145 | 0.186780 | 0.385766 | 1.57583 |
+| MH_03 | V_fixed | 0.067395 | 0.132809 | 0.190434 | 0.382094 | 1.58009 |
+| MH_03 | V_oracle_any_advantage | 0.067516 | 0.135460 | 0.188733 | 0.396151 | 1.62483 |
+| MH_03 | V_oracle_margin_002 | 0.069108 | 0.138145 | 0.186780 | 0.385766 | 1.57583 |
+| MH_04 | Passive | 0.080783 | 0.149541 | 0.239676 | 0.545678 | 3.25887 |
+| MH_04 | V_fixed | 0.081708 | 0.152660 | 0.237325 | 0.535529 | 3.08404 |
+| MH_04 | V_oracle_any_advantage | 0.080324 | 0.149492 | 0.243298 | 0.532055 | 3.18920 |
+| MH_04 | V_oracle_margin_002 | 0.080783 | 0.149541 | 0.239676 | 0.545678 | 3.25887 |
+| MH_05 | Passive | 0.070919 | 0.128590 | 0.157676 | 0.377180 | 2.57725 |
+| MH_05 | V_fixed | 0.071876 | 0.128838 | 0.167051 | 0.377217 | 2.64106 |
+| MH_05 | V_oracle_any_advantage | 0.071125 | 0.127018 | 0.158209 | 0.375436 | 2.56368 |
+| MH_05 | V_oracle_margin_002 | 0.071108 | 0.128614 | 0.158144 | 0.392357 | 2.55044 |
+
+相对 Passive 的 Velocity RMSE 改善率（正数为改善）：
+
+| 序列 | V_fixed | V_oracle_any_advantage | V_oracle_margin_002 |
+|---|---:|---:|---:|
+| V1_01 | -0.256% | +0.0008% | 0.000% |
+| V1_03 | +0.060% | **-2.321%** | **-2.477%** |
+| V2_03 | +2.297% | 0.000% | 0.000% |
+| MH_01 | -2.985% | +0.022% | 0.000% |
+| MH_02 | -0.986% | -1.175% | 0.000% |
+| MH_03 | +2.479% | +2.303% | +0.0004% |
+| MH_04 | -1.144% | +0.568% | +0.0001% |
+| MH_05 | -1.350% | -0.292% | -0.267% |
+
+### Stage 5 结论
+
+八条已覆盖序列上的 frozen measurement-accuracy Oracle 没有显示一致、明显的
+Velocity RMSE 增益：
+
+- V1_03 的 any-advantage / margin-0.02 反而退化 2.321%/2.477%；V2_03 没有正 advantage 点；
+- MH_03 的 any-advantage 改善 2.303%，但略低于 V_fixed 的 2.479%，同时 ATE 和
+  Rotation 分别退化 2.692% 和 3.110%；
+- MH_04 的 any-advantage 仅改善 0.568%；MH_01 几乎不变，MH_02/MH_05 退化；
+- margin-0.02 在 MH_01/MH_02 无开启点，在 MH_03/MH_04/MH_05 仅加入
+  26/16/1 个 factor，整体没有可重复的 Velocity 收益；
+- 所有 Oracle 的 mask miss 为 0，32 次正式回放均完整消费 canonical input，因而该
+  结果不能归因于输入缺失或 mask lookup 失败。
+
+因此，对 Stage 5 当前**具体问题**的答案是否定的：在当前 LTV velocity、Velocity
+factor、`sigma_v=1.0 m/s` 和“Passive 时刻瞬时 body-velocity 更接近 GT”的 frozen
+gate 定义下，没有观察到约 3% 以上、跨困难序列一致且不损害其他主要指标的明显增益。
+
+但这个结论有严格责任边界。当前 gate 是 measurement-accuracy hindsight gate，不是
+最终优化收益的理论 upper bound；factor 对滑窗状态和后续线性化的耦合解释了为何
+“局部 velocity 更准”仍可能使 ATE/Rotation 变差。因此本结果不支持沿**当前判据**继续
+设计在线 Velocity Quality Gate，也不能据此否定所有 optimization-benefit 或逐 factor
+反事实 Oracle。后者需要不同实验设计，且不属于本 Stage 5 的最小范围。

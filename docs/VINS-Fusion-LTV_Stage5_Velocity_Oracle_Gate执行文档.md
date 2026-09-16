@@ -1,88 +1,202 @@
-# VINS-Fusion + LTV Stage 5 执行文档：Velocity Oracle Gate
+# VINS-Fusion + LTV Stage 5 执行文档：冻结 Velocity Oracle Mask
 
-## 目标
+## 实验目标
 
-Stage 3 的固定 Velocity factor 工程稳定但未达到收益门槛。Stage 5 先用官方 GT 构造离线 Oracle，验证“仅在 LTV velocity 优于 VINS velocity 时加入 factor”是否存在值得继续研究的上限。
+Stage 5 只验证：按 Passive reference 上的**瞬时 body-velocity 误差**选择性加入现有
+LTV velocity factor，是否能显示明显增益潜力。这里的 Oracle 是离线
+measurement-accuracy hindsight gate，不是在线或可部署算法；GT 不进入正式 Oracle
+run、residual、状态量、observer 或 marginalization。
 
-Oracle 仅是离线反事实实验：不得被描述为在线或可部署算法，不得把 GT 读入 estimator，不得进入默认配置、marginalization、learned gate 或 RL。
+该判据不是最终优化收益的理论 upper bound。滑窗中的 factor 会耦合 pose、velocity、
+bias 和后续线性化点，因此“该时刻 LTV velocity 更接近 GT”不保证“加入 factor 后的
+整条轨迹更好”。本实验能否定或支持的是当前 frozen measurement-accuracy gate，不能
+单独否定所有可能基于最终优化收益定义的 hindsight/counterfactual gate。
 
-## 实际数据与实验集
+参考运行中定义：
 
-全量 11 序列、bag、官方 GT、loop closure OFF、`1.0×` 回放规则与 Stage 4 完全相同：
+\[
+v_{B,GT}=R_{WB,GT}^{T}V_{W,GT},\quad
+e_{LTV}=\|\hat v_{B,LTV}-v_{B,GT}\|,
+\]
+
+\[
+e_{VINS}=\|v_{B,VINS}-v_{B,GT}\|.
+\]
+
+冻结 mask 的两列为：
 
 ```text
-bag: /home/he/datasets/euroc/<sequence>_db
-GT:  /home/he/datasets/euroc/ASL/<sequence>/mav0/state_groundtruth_estimate0/data.csv
+oracle_0:   reference snapshot valid && e_LTV < e_VINS
+oracle_002: reference snapshot valid && e_LTV + 0.02 < e_VINS
 ```
 
-所有 velocity 指标直接使用官方 CSV 的 `v_RS_R_x/y/z`，不使用位置差分 fallback。`V1_03_difficult`、`V2_03_difficult` 和 MH_01–MH_05 必须全部纳入分析与回放。
+文中对正式模式采用语义化名称；括号内为 runner 保持兼容的内部 mode ID：
 
-输出分别放入 `/home/he/output/ltv_stage5/<sequence>/`；oracle mask、分析 JSON/CSV 和运行轨迹均不提交仓库。
+```text
+V_oracle_any_advantage  (v_oracle_0):   A = e_VINS - e_LTV > 0
+V_oracle_margin_002     (v_oracle_002): A > 0.02 m/s
+```
 
-## Oracle 定义与 mask
+## 正确实验模型
 
-从同一时间戳的 Baseline + Passive LTV 输出计算：
+```text
+canonical sensor input
+        |
+        v
+Passive reference ── official GT
+        |
+        v
+frozen oracle_mask.csv + SHA-256
+        |
+        +── V_fixed
+        +── V_oracle_any_advantage
+        `── V_oracle_margin_002
+```
 
-\[
-v_{B,GT}=R_{WB,GT}^{T}V_{W,GT}
-\]
+四种参考（Passive reference、V_fixed 与两个 Oracle）必须共享 canonical stereo
+pair SHA、IMU SHA、base config SHA 和 GT SHA；
+两个 Oracle 模式还必须共享 mask SHA。只要求输入日程相同，不要求 snapshot 数、轨迹行
+数或 reset 时刻完全相同。
 
-\[
-e_{LTV}=||\hat v_{B,LTV}-v_{B,GT}||,
-\qquad
-e_{VINS}=||R_{WB,VINS}^{T}V_{W,VINS}-v_{B,GT}||
-\]
+## 时序问题复盘与正确验收语义
 
-\[
-A_v=e_{VINS}-e_{LTV}
-\]
+Stage 5 必须固定的是 canonical sensor input schedule，而不是各模式的内部 estimator
+轨迹。任一模式首次加入 factor 后，都可能改变后续的 pose、velocity、bias、LTV snapshot
+validity 和 reset 时刻；这是相同输入下正常的算法响应，不能靠补帧、复制 snapshot 或修改
+reset 来消除。
 
-第一版 mask 条件固定为 `A_v > 0`。`A_v > 0.02 m/s` 只作离线敏感性统计，第一轮不做 margin sweep。
+因此验收规则为：
 
-`build_velocity_oracle_mask.py` 必须：
+- `consumed_pair_count == canonical_pair_count`；
+- 每个模式自己的 `vio.csv`、`ltv_debug.csv` 可解析、timestamp 严格递增、无 NaN/Inf，
+  且位于输入时间范围；
+- `vio.csv` 行数、snapshot 数和不同模式之间的 timestamp grid 不要求相同；
+- Oracle mask 锚定 Passive reference timestamp。Oracle run 的 timestamp 不在 mask 时
+  fail-closed，不加 factor 并记录 mask miss；不得 nearest、插值或按当前运行状态补判定。
 
-- 校验 GT、VINS 和 LTV snapshot 均来自同一 sequence；
-- 用最近邻时间匹配，误差必须不大于 `ltv_snapshot_max_time_error`；
-- 只为 valid、velocity-valid 且无 reset 的 snapshot 生成候选行；
-- 输出 `timestamp, oracle_velocity_on, advantage_mps, ltv_error_mps, vins_error_mps`；
-- 对缺失、重复、时间不匹配行输出 off；不得默认为 fixed Velocity factor。
+V2_03 的左右目数量不对称是独立的数据事实，不是算法时序不确定性：ASL 原始数据为
+1,922 left、2,336 right，按 runtime 同步语义得到 1,921 pair、drop left/right 为 1/415。
+在判定数据问题前必须审计 ASL 与 ROS2 bag 的 topic、顺序、重复、单调性、交集和首末
+timestamp；审计结果见 `docs/stage5_v2_03_timestamp_audit.md`。
 
-Run A 生成 mask，Run B 按冻结 mask 回放。Run B 中如 snapshot 与 mask 未在容差内匹配，必须 fail-closed，不加 Velocity factor，并记录 mask-miss。Gravity factor 始终关闭：
+## 数据审计与 canonical input
+
+V2_03 在生成 cache 前必须先运行 `audit_stage5_timestamps.py`。审计报告保存在
+`docs/stage5_v2_03_timestamp_audit.md`。只有确认额外右目图像来自原始 ASL，而非 bag
+转换、错误 topic、重复消息或 cache bug 后，才允许继续。
+
+ROS runtime、cache pairer 和 replay 校验共同使用
+`utility/stereo_synchronizer.h` 中的 3 ms 规则：
+
+```text
+|left-right| <= 3 ms -> pair
+left earlier             -> drop left
+right earlier            -> drop right
+```
+
+cache 中唯一正式图像输入清单为 `canonical_stereo_pairs.csv`，包含 pair timestamp、
+左右 timestamp、来源 index 和无损 PNG 路径。`metadata.json` 必须分别记录：
+
+```text
+left_input_count / right_input_count / paired_count
+dropped_left_count / dropped_right_count
+left_coverage / right_coverage
+pair_list_sha256 / imu_sha256 / ground_truth_sha256
+```
+
+## 冻结 mask 与运行时语义
+
+先用 `reference` 模式生成 passive LTV CSV，再运行：
+
+```bash
+python3 vins/scripts/build_stage5_oracle_mask.py \
+  --reference-ltv <reference>/ltv_debug.csv \
+  --ground-truth <ASL>/mav0/state_groundtruth_estimate0/data.csv \
+  --output <sequence>/oracle_mask.csv
+```
+
+mask 生成器可以在 reference 后处理中按 5 ms 容差匹配 GT。生成后记录 SHA 并冻结。
+正式 Oracle run 只读取：
 
 ```yaml
-ltv_enable_gravity_factor: 0
-ltv_enable_velocity_factor: 1
 ltv_enable_velocity_oracle_gate: 1
-ltv_velocity_oracle_mask_path: <sequence mask path>
+ltv_velocity_oracle_mask_path: "/absolute/path/oracle_mask.csv"
+ltv_velocity_oracle_mask_column: "oracle_0"  # 或 oracle_002
 ```
 
-## 分析、实验与判定
+运行时把 `snapshot.frame_timestamp` 转成 ns 后精确查表；禁止 nearest、插值、实时读
+GT 或按当前模式重新计算 advantage。mask 缺失、timestamp miss、base eligibility 不成立
+时全部 fail-closed。
 
-每个序列先离线报告：
+## 模式
+
+| 模式 | Velocity factor | Gate | 说明 |
+|---|---:|---|---|
+| Passive reference | OFF | 无 | 生成冻结 mask，同时作无 factor 参考 |
+| V_fixed | ON | 无 | 固定开启对照 |
+| V_oracle_any_advantage (`v_oracle_0`) | ON | frozen `oracle_0` | 主实验；只要求 LTV 瞬时误差更小 |
+| V_oracle_margin_002 (`v_oracle_002`) | ON | frozen `oracle_002` | 敏感性实验；要求至少 `0.02 m/s` 优势 |
+
+Gravity factor 和 loop closure 全部关闭。默认配置中 Velocity factor 与 Oracle Gate 仍
+保持关闭。
+
+## 回放与事务化输出
+
+`stage5_replay` 强制单线程 estimator，逐一消费 canonical pairs，并单独记录
+`canonical_pair_count` 与 `consumed_pair_count`。退出顺序固定为：
 
 ```text
-P(A_v > 0)
-P(A_v > 0.02 m/s)
-positive advantage median / P90
-oracle-positive 连续段长度
-与 feature count、normalized innovation、motion intensity、gravity disagreement 的关系
+drain -> Estimator/CSV 析构 -> unregisterPub -> node.reset -> rclcpp::shutdown
 ```
 
-再对完整 11 序列运行：
+`run_stage5_velocity_oracle.py` 先写 `<mode>.partial-<uuid>`，正常退出并通过以下验证后
+才原子 rename 为 `<mode>`；失败目录保留为 `<mode>.failed-<timestamp>-<uuid>`，不得
+覆盖正式结果：
 
-| 模式 | Gravity | Velocity |
-|---|---:|---:|
-| B | OFF | OFF |
-| V_fixed | OFF | 固定 `sigma_v = 1.0 m/s` |
-| V_oracle | OFF | Oracle mask |
+- consumed pair count 等于 canonical pair count；
+- `vio.csv` 与 `ltv_debug.csv` 可解析、时间戳严格递增且无 NaN/Inf；
+- 无 unusable solver、SIGSEGV 或 DDS 销毁错误；
+- canonical pair、IMU、base config、GT、mask SHA 在运行前后不变；
+- `factor_added => base_eligible && mask_loaded && mask_hit && oracle_pass`。
 
-统一使用官方 GT 输出 position、orientation 和 velocity 的 RMSE/P95/max，以及 oracle coverage、mask hit/miss、factor coverage、reset、NaN/Inf、solver failure。完整报告必须单列 Vicon difficult 与每个 MH 序列，不能只汇总平均值。
+不得要求 `vio.csv rows == canonical pairs`。
 
-若 V_oracle 相比 V_fixed 没有跨多个困难序列的一致改善，或仍整体变差，则停止 Velocity Quality Gate、learned gate 与 RL 路线；Stage 6 不包含 Velocity 分支。若 V_oracle 在困难序列显示清晰且可解释的改善，才允许作为 Stage 6 的 upper-bound control。
+## 执行顺序
 
-## 工程验收
+1. 对 V2_03 完成 ASL/bag timestamp 审计；对每个序列使用共享 `StereoSynchronizer`
+   生成一次 canonical pair list、IMU CSV 与 manifest。
+2. 确认离线 replay 生命周期按 `Estimator/CSV 析构 -> unregisterPub -> node.reset ->
+   rclcpp::shutdown` 退出，且无 DDS destruction error 或 SIGSEGV。
+3. 以 Passive reference 运行 LTV、不加入 Velocity factor，生成 `ltv_debug.csv`。
+4. 使用 Passive CSV + official GT 构建并冻结 `oracle_mask.csv`；记录 mask SHA。
+5. 运行 V_fixed、V_oracle_any_advantage 和 V_oracle_margin_002；Oracle replay 只读
+   frozen mask，不读取 GT。
+6. 用 `verify_snapshot_timestamps.py` 进行每个输出自身的 timestamp 验证，并报告而非
+   强制模式间 grid 是否一致；用官方 GT 计算指标。
 
-- mask parser、时间容差、缺失 mask fail-closed、GT 不进入 estimator 必须有自动化测试。
-- Oracle gate 默认关闭时，trajectory 必须与 V_fixed 字节级一致。
-- 只增加独立 Oracle mask 模块，不修改 LtvObserver 方程、Velocity residual、VINS state layout 或 marginalization。
-- 完成后提交代码、测试和全量 11 序列报告并停止，不自动进入 Stage 6。
+先执行 `V1_01_easy`、`V1_03_difficult`、`V2_03_difficult` 作为工程门槛；通过后可扩展
+其他 EuRoC 序列。
+
+`verify_snapshot_timestamps.py` 只验证每个模式自身的非零 timestamp 严格递增，并报告
+模式间是否同 grid；不同 grid 是允许且需要报告的算法行为，不再作为时序失败。
+
+## 指标与判定
+
+每个序列报告 ATE、Rotation/Roll/Pitch RMSE、Velocity RMSE/P95/max、Oracle coverage、
+正 advantage 分布、GT 最大匹配误差、factor coverage、mask hit/miss、reset、NaN/Inf
+和 solver 状态。
+
+- 若任一语义化 V_oracle 在至少两个困难序列上使 Velocity RMSE 相对 B 改善约 3% 以上，同时
+  优于 V_fixed，且其他主要指标没有约 3% 以上退化，则值得继续研究不依赖 GT 的
+  online gate。
+- 若该 measurement-accuracy Oracle 仍没有跨困难序列的一致收益，则当前证据不支持
+  沿此判据继续 Velocity Quality Gate、learned gate 和 RL Velocity 分支；这不是对
+  所有优化收益型 Oracle 的普遍否定。
+- V_oracle_margin_002 只判断小幅优势是否可能属于噪声，不替代
+  V_oracle_any_advantage 的主结论。
+
+## 范围禁止事项
+
+本 Stage 5 不引入 Gravity factor、Gravity Quality Gate、Gravity + Velocity 联合、最终
+2×2 ablation、marginalization 改动、RL、adaptive sigma 或联合调参；不得为追求模式间
+snapshot 一致而补帧、复制图像或修改 reset 行为。

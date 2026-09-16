@@ -75,6 +75,8 @@ void readLtvConfig(const cv::FileStorage &settings)
     readOptional(settings, "ltv_enable_velocity_factor", LTV_CONFIG.enable_velocity_factor);
     readOptional(settings, "ltv_enable_gravity_quality_gate",
                  LTV_CONFIG.enable_gravity_quality_gate);
+    readOptional(settings, "ltv_enable_velocity_oracle_gate",
+                 LTV_CONFIG.enable_velocity_oracle_gate);
     readOptional(settings, "ltv_max_features", LTV_CONFIG.max_features);
     readOptional(settings, "ltv_min_features", LTV_CONFIG.min_features);
     readOptional(settings, "ltv_feature_max_missed_frames", LTV_CONFIG.max_missed_frames);
@@ -108,6 +110,10 @@ void readLtvConfig(const cv::FileStorage &settings)
     readOptional(settings, "ltv_velocity_sigma_mps", LTV_CONFIG.velocity_sigma_mps);
     readOptional(settings, "ltv_velocity_huber_delta", LTV_CONFIG.velocity_huber_delta);
     readOptional(settings, "ltv_snapshot_max_time_error", LTV_CONFIG.snapshot_max_time_error);
+    readOptional(settings, "ltv_velocity_oracle_mask_path",
+                 LTV_CONFIG.velocity_oracle_mask_path);
+    readOptional(settings, "ltv_velocity_oracle_mask_column",
+                 LTV_CONFIG.velocity_oracle_mask_column);
     readOptional(settings, "ltv_debug_csv_path", LTV_CONFIG.debug_csv_path);
 }
 

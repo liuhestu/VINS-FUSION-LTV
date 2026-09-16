@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <iomanip>
+#include <limits>
 
 namespace ltv
 {
@@ -45,7 +46,9 @@ void LtvCsvLogger::configure(bool enabled, const std::string &path)
                    "vins_velocity_body_z,velocity_factor_residual_x,"
                    "velocity_factor_residual_y,velocity_factor_residual_z,"
                    "velocity_factor_residual_norm,"
-                   "velocity_factor_weighted_residual_norm,velocity_factor_added\n";
+                   "velocity_factor_weighted_residual_norm,velocity_factor_added,"
+                   "velocity_factor_base_eligible,velocity_oracle_mask_loaded,"
+                   "velocity_oracle_mask_hit,velocity_oracle_pass\n";
     }
 }
 
@@ -60,7 +63,7 @@ void LtvCsvLogger::write(const LtvSnapshot &snapshot)
     if (!stream_)
         return;
 
-    stream_ << std::setprecision(16)
+    stream_ << std::setprecision(std::numeric_limits<double>::max_digits10)
             << snapshot.frame_timestamp << ',' << snapshot.imu_timestamp << ','
             << snapshot.state_features << ',' << snapshot.observed_features << ','
             << snapshot.velocity_body.x() << ',' << snapshot.velocity_body.y() << ','
@@ -93,7 +96,11 @@ void LtvCsvLogger::write(const LtvSnapshot &snapshot)
             << snapshot.velocity_factor_residual.z() << ','
             << snapshot.velocity_factor_residual_norm << ','
             << snapshot.velocity_factor_weighted_residual_norm << ','
-            << snapshot.velocity_factor_added << '\n';
+            << snapshot.velocity_factor_added << ','
+            << snapshot.velocity_factor_base_eligible << ','
+            << snapshot.velocity_oracle_mask_loaded << ','
+            << snapshot.velocity_oracle_mask_hit << ','
+            << snapshot.velocity_oracle_pass << '\n';
     stream_.flush();
 }
 

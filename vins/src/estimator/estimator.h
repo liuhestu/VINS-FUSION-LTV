@@ -40,6 +40,7 @@
 #include "../ltv/ltv_observer.h"
 #include "../ltv/ltv_csv_logger.h"
 #include "../ltv/ltv_quality_gate.h"
+#include "../ltv/ltv_velocity_oracle_gate.h"
 #include "../ltv/ltv_snapshot_window.h"
 
 #define ROS_INFO RCUTILS_LOG_INFO
@@ -62,6 +63,10 @@ class Estimator
     void processIMU(double t, double dt, const Vector3d &linear_acceleration, const Vector3d &angular_velocity);
     void processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, const double header);
     void processMeasurements();
+    // Stage 5's offline feeder calls this after the final event.  In its
+    // single-threaded mode, an empty feature queue is a deterministic drain
+    // condition rather than a wall-clock heuristic.
+    bool finishInputAndDrain();
     void changeSensorType(int use_imu, int use_stereo);
 
     // internal
@@ -93,6 +98,7 @@ class Estimator
                          double frame_timestamp);
     bool ltvGravityFactorBaseEligible(int index) const;
     bool ltvGravityFactorEligible(int index) const;
+    bool ltvVelocityFactorBaseEligible(int index) const;
     bool ltvVelocityFactorEligible(int index) const;
     void updateLtvFactorDiagnostics(int index);
 
@@ -160,6 +166,7 @@ class Estimator
     ltv::LtvConfig ltv_config;
     ltv::LtvSnapshot latest_ltv_snapshot;
     ltv::LtvSnapshotWindow<WINDOW_SIZE + 1> ltv_snapshot_window;
+    ltv::VelocityOracleGate velocity_oracle_gate;
     int gravity_gate_cooldown_frames_remaining = 0;
 
     bool first_imu;

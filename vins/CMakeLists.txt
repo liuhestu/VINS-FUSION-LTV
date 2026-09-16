@@ -52,6 +52,7 @@ add_library(vins_lib
     src/utility/CameraPoseVisualization.cpp
     src/ltv/ltv_observer.cpp
     src/ltv/ltv_quality_gate.cpp
+    src/ltv/ltv_velocity_oracle_gate.cpp
     src/ltv/ltv_csv_logger.cpp
     src/initial/solve_5pts.cpp
     src/initial/initial_aligment.cpp
@@ -65,6 +66,14 @@ ament_target_dependencies(vins_lib rclcpp rcpputils std_msgs visualization_msgs 
 add_executable(vins_node src/rosNodeTest.cpp)
 ament_target_dependencies(vins_node rclcpp rcpputils std_msgs visualization_msgs geometry_msgs nav_msgs tf2 tf2_ros cv_bridge camera_models image_transport)
 target_link_libraries(vins_node vins_lib) 
+
+add_executable(stage5_replay stage5Replay.cpp)
+ament_target_dependencies(stage5_replay rclcpp rcpputils std_msgs visualization_msgs geometry_msgs nav_msgs tf2 tf2_ros cv_bridge camera_models image_transport)
+target_include_directories(stage5_replay PRIVATE src)
+target_link_libraries(stage5_replay vins_lib)
+
+add_executable(stage5_pair_stereo stage5PairStereo.cpp)
+target_include_directories(stage5_pair_stereo PRIVATE src)
 
 add_executable(kitti_odom_test src/KITTIOdomTest.cpp)
 ament_target_dependencies(kitti_odom_test rclcpp rcpputils std_msgs visualization_msgs geometry_msgs nav_msgs tf2 tf2_ros cv_bridge camera_models image_transport)
@@ -91,6 +100,16 @@ if(BUILD_TESTING)
   if(TARGET test_ltv_quality_gate)
     target_include_directories(test_ltv_quality_gate PRIVATE src)
   endif()
+  ament_add_gtest(test_ltv_velocity_oracle_gate
+    test/test_ltv_velocity_oracle_gate.cpp
+    src/ltv/ltv_velocity_oracle_gate.cpp)
+  if(TARGET test_ltv_velocity_oracle_gate)
+    target_include_directories(test_ltv_velocity_oracle_gate PRIVATE src)
+  endif()
+  ament_add_gtest(test_stereo_synchronizer test/test_stereo_synchronizer.cpp)
+  if(TARGET test_stereo_synchronizer)
+    target_include_directories(test_stereo_synchronizer PRIVATE src)
+  endif()
   ament_add_gtest(test_ltv_snapshot test/test_ltv_snapshot.cpp)
   if(TARGET test_ltv_snapshot)
     target_include_directories(test_ltv_snapshot PRIVATE src)
@@ -114,6 +133,12 @@ if(BUILD_TESTING)
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_evaluate_vins_euroc.py)
   add_test(NAME test_analyze_euroc_asl_velocity
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_analyze_euroc_asl_velocity.py)
+  add_test(NAME test_verify_snapshot_timestamps
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_verify_snapshot_timestamps.py)
+  add_test(NAME test_stage5_cache
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_stage5_cache.py)
+  add_test(NAME test_build_stage5_oracle_mask
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_build_stage5_oracle_mask.py)
 endif()
 
 # added from DEBUG
@@ -133,6 +158,8 @@ install(
 # Install nodes
 install(
   TARGETS vins_node
+          stage5_replay
+          stage5_pair_stereo
   DESTINATION lib/${PROJECT_NAME}
 )
 
