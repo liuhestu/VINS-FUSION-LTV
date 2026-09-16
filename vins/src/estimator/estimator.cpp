@@ -105,6 +105,7 @@ void Estimator::clearState()
     latest_ltv_snapshot = ltv::LtvSnapshot{};
     ltv_snapshot_window.clear();
     gravity_gate_cooldown_frames_remaining = 0;
+    velocity_gate_cooldown_frames_remaining = 0;
 
     failure_occur = 0;
 
@@ -138,6 +139,7 @@ void Estimator::setParameter()
     {
         ltv_config.enable_gravity_factor = false;
         ltv_config.enable_velocity_factor = false;
+        ltv_config.enable_velocity_quality_gate = false;
         ltv_config.enable_velocity_oracle_gate = false;
     }
     if (ltv_config.enable_gravity_factor &&
@@ -164,7 +166,23 @@ void Estimator::setParameter()
         ROS_WARN("invalid LTV gravity quality gate configuration; disabling quality gate");
         ltv_config.enable_gravity_quality_gate = false;
     }
-    if (!velocity_oracle_gate.configure(ltv_config.enable_velocity_oracle_gate,
+    if (!velocity_quality_gate.configure(ltv_config))
+    {
+        if (velocity_quality_gate.oracleConflict())
+        {
+            ROS_ERROR("LTV velocity quality gate conflicts with the Oracle gate; "
+                      "velocity factors will fail closed");
+        }
+        else
+        {
+            ROS_ERROR("invalid LTV velocity quality gate configuration; "
+                      "velocity factors will fail closed");
+        }
+    }
+    const bool load_velocity_oracle =
+        ltv_config.enable_velocity_oracle_gate &&
+        !ltv_config.enable_velocity_quality_gate;
+    if (!velocity_oracle_gate.configure(load_velocity_oracle,
                                         ltv_config.velocity_oracle_mask_path,
                                         ltv_config.velocity_oracle_mask_column))
     {
@@ -621,6 +639,8 @@ bool Estimator::ltvVelocityFactorEligible(int index) const
         return false;
 
     const ltv::LtvSnapshot &snapshot = ltv_snapshot_window[index];
+    if (ltv_config.enable_velocity_quality_gate && !snapshot.velocity_gate_pass)
+        return false;
     return !ltv_config.enable_velocity_oracle_gate || snapshot.velocity_oracle_pass;
 }
 
@@ -687,6 +707,26 @@ void Estimator::updateLtvFactorDiagnostics(int index)
     }
 
     const bool velocity_base_eligible = ltvVelocityFactorBaseEligible(index);
+    if (snapshot.last_reset_reason != ltv::LtvResetReason::None)
+    {
+        velocity_gate_cooldown_frames_remaining =
+            ltv_config.velocity_gate_reset_cooldown_frames;
+    }
+    const ltv::VelocityGateDecision velocity_gate =
+        velocity_quality_gate.evaluate(
+            snapshot, velocity_base_eligible, snapshot.vins_velocity_body,
+            velocity_gate_cooldown_frames_remaining);
+    snapshot.velocity_gate_feature_ok = velocity_gate.feature_ok;
+    snapshot.velocity_gate_innovation_ok = velocity_gate.innovation_ok;
+    snapshot.velocity_gate_disagreement_ok = velocity_gate.disagreement_ok;
+    snapshot.velocity_gate_reset_ok = velocity_gate.reset_ok;
+    snapshot.velocity_gate_pass = velocity_gate.pass;
+    snapshot.velocity_gate_reason_mask = velocity_gate.reason_mask;
+    if (snapshot.last_reset_reason == ltv::LtvResetReason::None &&
+        velocity_gate_cooldown_frames_remaining > 0)
+    {
+        --velocity_gate_cooldown_frames_remaining;
+    }
     const ltv::VelocityOracleGateDecision oracle_decision =
         velocity_oracle_gate.evaluate(velocity_base_eligible,
                                       snapshot.frame_timestamp);

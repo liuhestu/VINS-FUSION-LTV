@@ -35,3 +35,8 @@ The optional velocity factor compares the observer's body-frame velocity to
 the VINS world-frame velocity transformed into the body frame. It is subject
 to the same correlation limitation, remains disabled by default, and is not
 retained in the marginalization prior during the initial validation stage.
+When `ltv_enable_velocity_quality_gate` is enabled, eligibility is frozen with
+the snapshot using only the pre-optimization feature count, normalized
+innovation, LTV/VINS body-velocity disagreement, and an independent reset
+cooldown. This online gate is mutually exclusive with the offline velocity
+Oracle gate; conflicts and invalid thresholds fail closed.

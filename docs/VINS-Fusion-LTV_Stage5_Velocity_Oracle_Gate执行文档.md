@@ -174,8 +174,8 @@ drain -> Estimator/CSV 析构 -> unregisterPub -> node.reset -> rclcpp::shutdown
 6. 用 `verify_snapshot_timestamps.py` 进行每个输出自身的 timestamp 验证，并报告而非
    强制模式间 grid 是否一致；用官方 GT 计算指标。
 
-先执行 `V1_01_easy`、`V1_03_difficult`、`V2_03_difficult` 作为工程门槛；通过后可扩展
-其他 EuRoC 序列。
+先执行 `V1_01_easy`、`V1_03_difficult`、`V2_03_difficult` 作为工程门槛；通过后补齐
+完整 EuRoC 11 序列。最终正式矩阵必须为 11 序列 × 4 模式，共 44 次回放。
 
 `verify_snapshot_timestamps.py` 只验证每个模式自身的非零 timestamp 严格递增，并报告
 模式间是否同 grid；不同 grid 是允许且需要报告的算法行为，不再作为时序失败。
@@ -200,3 +200,10 @@ drain -> Estimator/CSV 析构 -> unregisterPub -> node.reset -> rclcpp::shutdown
 本 Stage 5 不引入 Gravity factor、Gravity Quality Gate、Gravity + Velocity 联合、最终
 2×2 ablation、marginalization 改动、RL、adaptive sigma 或联合调参；不得为追求模式间
 snapshot 一致而补帧、复制图像或修改 reset 行为。
+
+## 最终状态
+
+全量 11 序列、44 次正式回放已经完成。measurement-accuracy Oracle 验证失败；最终
+定性固定为瞬时 velocity accuracy 不适合作为非学习式 Velocity Gate 判据。停止手工
+Velocity Quality Gate，后续联合结构只保留 `V_fixed`。完整结果见
+`docs/stage_test_result.md`。

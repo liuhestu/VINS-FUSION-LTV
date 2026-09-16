@@ -70,6 +70,7 @@ ltv_log_debug: 1
 ltv_enable_gravity_factor: 0
 ltv_enable_velocity_factor: 0
 ltv_enable_gravity_quality_gate: 0
+ltv_enable_velocity_quality_gate: 0
 ltv_enable_velocity_oracle_gate: 0
 ltv_debug_csv_path: "~/output/ltv_debug.csv"
 ltv_max_features: 30
@@ -93,6 +94,10 @@ ltv_max_camera_substeps: 100
 ltv_gravity_norm_min: 7.0
 ltv_gravity_norm_max: 12.0
 ltv_gravity_sigma_deg: 10.0
+ltv_velocity_gate_min_features: 25
+ltv_velocity_gate_max_normalized_innovation: 0.03
+ltv_velocity_gate_max_disagreement_mps: 0.5
+ltv_velocity_gate_reset_cooldown_frames: 10
 ltv_gravity_huber_delta: 2.0
 ltv_gravity_gate_min_features: 15
 ltv_gravity_gate_max_eta_norm_error: 0.2

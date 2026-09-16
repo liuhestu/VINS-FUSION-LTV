@@ -41,6 +41,7 @@
 #include "../ltv/ltv_csv_logger.h"
 #include "../ltv/ltv_quality_gate.h"
 #include "../ltv/ltv_velocity_oracle_gate.h"
+#include "../ltv/ltv_velocity_quality_gate.h"
 #include "../ltv/ltv_snapshot_window.h"
 
 #define ROS_INFO RCUTILS_LOG_INFO
@@ -167,7 +168,9 @@ class Estimator
     ltv::LtvSnapshot latest_ltv_snapshot;
     ltv::LtvSnapshotWindow<WINDOW_SIZE + 1> ltv_snapshot_window;
     ltv::VelocityOracleGate velocity_oracle_gate;
+    ltv::VelocityQualityGate velocity_quality_gate;
     int gravity_gate_cooldown_frames_remaining = 0;
+    int velocity_gate_cooldown_frames_remaining = 0;
 
     bool first_imu;
     bool is_valid, is_key;

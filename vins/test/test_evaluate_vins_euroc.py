@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 
 import importlib.util
+import io
+import json
 import os
+import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from unittest import mock
 
 import numpy as np
 
@@ -17,6 +22,40 @@ SPEC.loader.exec_module(EVALUATOR)
 
 
 class EvaluateVinsEurocTest(unittest.TestCase):
+
+    def test_json_output_includes_position_and_rotation_p95(self):
+        times = np.asarray([1.0, 2.0, 3.0, 4.0])
+        positions = np.asarray([
+            [0.0, 0.0, 0.0], [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+        rotations = np.tile(np.eye(3), (4, 1, 1))
+        velocities = np.zeros((4, 3))
+        ground_truth = {
+            "source": "official_csv",
+            "topic": None,
+            "timestamps": times,
+            "positions": positions,
+            "rotations": rotations,
+            "velocities": velocities,
+        }
+        stdout = io.StringIO()
+        arguments = [
+            "evaluate_vins_euroc.py", "bag", "trajectory",
+            "--ground-truth-csv", "ground-truth.csv", "--json"]
+        with mock.patch.object(sys, "argv", arguments), \
+                mock.patch.object(
+                    EVALUATOR, "read_vins",
+                    return_value=(times, positions, rotations, velocities)), \
+                mock.patch.object(
+                    EVALUATOR, "read_official_ground_truth",
+                    return_value=ground_truth), redirect_stdout(stdout):
+            EVALUATOR.main()
+
+        result = json.loads(stdout.getvalue())
+        self.assertIn("position_p95_error_m", result)
+        self.assertIn("rotation_p95_error_deg", result)
+        self.assertAlmostEqual(result["position_p95_error_m"], 0.0)
+        self.assertAlmostEqual(result["rotation_p95_error_deg"], 0.0, places=5)
 
     def test_official_csv_reads_velocity_by_header_name(self):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as stream:

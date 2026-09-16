@@ -53,6 +53,7 @@ add_library(vins_lib
     src/ltv/ltv_observer.cpp
     src/ltv/ltv_quality_gate.cpp
     src/ltv/ltv_velocity_oracle_gate.cpp
+    src/ltv/ltv_velocity_quality_gate.cpp
     src/ltv/ltv_csv_logger.cpp
     src/initial/solve_5pts.cpp
     src/initial/initial_aligment.cpp
@@ -106,6 +107,12 @@ if(BUILD_TESTING)
   if(TARGET test_ltv_velocity_oracle_gate)
     target_include_directories(test_ltv_velocity_oracle_gate PRIVATE src)
   endif()
+  ament_add_gtest(test_ltv_velocity_quality_gate
+    test/test_ltv_velocity_quality_gate.cpp
+    src/ltv/ltv_velocity_quality_gate.cpp)
+  if(TARGET test_ltv_velocity_quality_gate)
+    target_include_directories(test_ltv_velocity_quality_gate PRIVATE src)
+  endif()
   ament_add_gtest(test_stereo_synchronizer test/test_stereo_synchronizer.cpp)
   if(TARGET test_stereo_synchronizer)
     target_include_directories(test_stereo_synchronizer PRIVATE src)
@@ -139,6 +146,8 @@ if(BUILD_TESTING)
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_stage5_cache.py)
   add_test(NAME test_build_stage5_oracle_mask
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_build_stage5_oracle_mask.py)
+  add_test(NAME test_run_stage6_joint
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_run_stage6_joint.py)
 endif()
 
 # added from DEBUG

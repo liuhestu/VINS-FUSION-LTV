@@ -14,6 +14,7 @@ struct LtvConfig
     bool enable_gravity_factor = false;
     bool enable_velocity_factor = false;
     bool enable_gravity_quality_gate = false;
+    bool enable_velocity_quality_gate = false;
     bool enable_velocity_oracle_gate = false;
     int max_features = 30;
     int min_features = 15;
@@ -43,6 +44,10 @@ struct LtvConfig
     int gravity_gate_reset_cooldown_frames = 0;
     double velocity_sigma_mps = 1.0;
     double velocity_huber_delta = 2.0;
+    int velocity_gate_min_features = 25;
+    double velocity_gate_max_normalized_innovation = 0.03;
+    double velocity_gate_max_disagreement_mps = 0.5;
+    int velocity_gate_reset_cooldown_frames = 10;
     double snapshot_max_time_error = 0.005;
     std::string velocity_oracle_mask_path;
     std::string velocity_oracle_mask_column = "oracle_0";
@@ -120,6 +125,12 @@ struct LtvSnapshot
     double velocity_factor_weighted_residual_norm = 0.0;
     bool velocity_factor_added = false;
     bool velocity_factor_base_eligible = false;
+    bool velocity_gate_feature_ok = false;
+    bool velocity_gate_innovation_ok = false;
+    bool velocity_gate_disagreement_ok = false;
+    bool velocity_gate_reset_ok = false;
+    bool velocity_gate_pass = false;
+    unsigned int velocity_gate_reason_mask = 0;
     bool velocity_oracle_mask_loaded = false;
     bool velocity_oracle_mask_hit = false;
     bool velocity_oracle_pass = false;

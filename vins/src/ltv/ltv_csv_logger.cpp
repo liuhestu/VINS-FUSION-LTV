@@ -47,7 +47,10 @@ void LtvCsvLogger::configure(bool enabled, const std::string &path)
                    "velocity_factor_residual_y,velocity_factor_residual_z,"
                    "velocity_factor_residual_norm,"
                    "velocity_factor_weighted_residual_norm,velocity_factor_added,"
-                   "velocity_factor_base_eligible,velocity_oracle_mask_loaded,"
+                   "velocity_factor_base_eligible,velocity_gate_feature_ok,"
+                   "velocity_gate_innovation_ok,velocity_gate_disagreement_ok,"
+                   "velocity_gate_reset_ok,velocity_gate_pass,velocity_gate_reason_mask,"
+                   "velocity_oracle_mask_loaded,"
                    "velocity_oracle_mask_hit,velocity_oracle_pass\n";
     }
 }
@@ -98,6 +101,12 @@ void LtvCsvLogger::write(const LtvSnapshot &snapshot)
             << snapshot.velocity_factor_weighted_residual_norm << ','
             << snapshot.velocity_factor_added << ','
             << snapshot.velocity_factor_base_eligible << ','
+            << snapshot.velocity_gate_feature_ok << ','
+            << snapshot.velocity_gate_innovation_ok << ','
+            << snapshot.velocity_gate_disagreement_ok << ','
+            << snapshot.velocity_gate_reset_ok << ','
+            << snapshot.velocity_gate_pass << ','
+            << snapshot.velocity_gate_reason_mask << ','
             << snapshot.velocity_oracle_mask_loaded << ','
             << snapshot.velocity_oracle_mask_hit << ','
             << snapshot.velocity_oracle_pass << '\n';

@@ -1,4 +1,4 @@
-VINS Fusion LTV 项目可以概括成 5 个主要阶段。
+VINS Fusion LTV 项目当前按 8 个阶段推进。
 
 整体上，你这个项目最清晰的技术主线可以压缩成：
 
@@ -12,27 +12,34 @@ $$
 \rightarrow
 \text{Velocity 辅助速度}
 \rightarrow
-\text{质量门控 + 滑窗融合}
+\text{质量门控}
 \rightarrow
-\text{困难运动验证}
+\text{联合结构验证}
+\rightarrow
+\text{联合调参}
+\rightarrow
+\text{跨数据集泛化}
 }
 $$
 
-其中你现在的位置大约是：
+截至 Stage 6b 正式实验后的状态为：
 
 ```text
-Stage 1  Passive LTV          ✅
-           ↓
-Stage 2  Snapshot + Gravity   ← 当前
-           ↓
-Stage 3  Velocity
-           ↓
-Stage 4  Robust integration
-           ↓
-Stage 5  Difficult-sequence evaluation
-           ↓
-Stage 6  Landmark coupling    optional
+Stage 1  Passive LTV observer              ✅
+Stage 2  Gravity factor                    ✅ 工程完成
+Stage 3  Velocity factor                   ✅ 工程完成
+Stage 4  Gravity Quality Gate              ✅ 工程通过 / 效果未通过
+Stage 5  Velocity measurement Oracle       ✅ 负结果；只保留 V_fixed
+Stage 6  G_gate + V_fixed joint structure  ❌ 效果验收失败
+Stage 6b G_gate + online V_gate safety     ❌ 工程通过 / 安全性失败
+Stage 7  Joint tuning                      ⏸ 仅文档；未执行
+Stage 8  UZH-FPV held-out generalization   ⏸ 仅文档；未执行
 ```
+
+Stage 6 的失败来自 MH_01_easy Rotation RMSE 相对 B 退化 10.65%；随后独立 Stage 6b
+用在线 Heuristic Velocity Gate 替代 V_fixed，工程验收通过，但 MH_01_easy Rotation
+仍退化 14.21%，超过 3% 硬门槛。因此按预先规则停止，不执行 Stage 7；Stage 8 也只
+保留未来执行协议。详细数字与责任边界见 `stage_test_result.md`。
 
 
 # 第一阶段：Passive LTV Observer —— 先证明 LTV 本身能工作。
@@ -51,7 +58,6 @@ $$
 最终效果是：你拥有了一个独立于 VINS 优化器的“第二套运动状态估计”，可以评价它的 gravity direction 和 body velocity 是否真的有信息价值。
 
 # 第二阶段：LTV Gravity → VINS —— 先让 LTV 真正帮助一次 VINS。
-这是你现在正在做的阶段。
 
 先把每个相机时刻的 LTV 输出冻结成：
 

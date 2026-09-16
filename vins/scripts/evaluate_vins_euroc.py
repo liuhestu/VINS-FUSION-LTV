@@ -307,6 +307,7 @@ def main():
         "duration_s": float(vins_times[-1] - vins_times[0]),
         "maximum_timestamp_error_s": float(np.max(time_errors)),
         "ate_rmse_m": float(math.sqrt(np.mean(position_errors ** 2))),
+        "position_p95_error_m": float(np.percentile(position_errors, 95)),
         "maximum_position_error_m": float(np.max(position_errors)),
     }
 
@@ -341,6 +342,8 @@ def main():
         result.update({
             "orientation_alignment_samples": orientation_alignment_samples,
             "rotation_rmse_deg": math.degrees(math.sqrt(np.mean(rotation_errors ** 2))),
+            "rotation_p95_error_deg": math.degrees(
+                float(np.percentile(rotation_errors, 95))),
             "maximum_rotation_error_deg": math.degrees(float(np.max(rotation_errors))),
             "roll_rmse_deg": math.degrees(math.sqrt(np.mean(rpy_errors[:, 0] ** 2))),
             "pitch_rmse_deg": math.degrees(math.sqrt(np.mean(rpy_errors[:, 1] ** 2))),
