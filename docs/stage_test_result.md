@@ -823,5 +823,42 @@ Stage 6b 对应姿态栏，并把安全性失败定位从 MH_01 更正为 V1_02�
 MH_01 failure diagnosis：其 Pitch 分量具有显著 alignment 敏感性，不能作为“V_gate
 长开导致姿态恶化”的证据。本轮停止，不调参、不进入 Stage 7。
 
+## MH_04 Replay Chain Sanity Check — ROS2 Realtime vs Offline
 
+为判断当前 Baseline 偏差是否由 deterministic offline feeder 引入，只对
+`MH_04_difficult` 做一次最小方向性对照。测试期间主批次仍有部分 mode 在后台收尾，
+因此这不是严格隔离的性能 benchmark；两边使用同一份 Stage 6b 基础配置及相同 VINS
+参数，并统一设置：
+
+```text
+ltv_enable = 0
+Gravity / Velocity factor = OFF
+Gravity / Velocity / Oracle gate = OFF
+freq = 20
+multiple_thread = 0
+loop closure = OFF
+```
+
+Realtime 使用原始 ROS2 topics 和 `ros2 bag play --rate 1.0`；offline 使用当前
+`stage5_replay` 与同一 MH_04 canonical v2 cache。两者均用 official ASL GT、同一个
+`evaluate_vins_euroc.py`。为排除输出首尾相差 0.15 秒的影响，最终比较只取两模式在
+1 ms 内一一匹配、且在 20 ms 内匹配 GT 的共同时间戳；实际 1,976 个共同样本的最大
+跨模式及 GT 时间误差均为 `2.38e-7 s`。
+
+| 链路 | VIO rows | ATE RMSE (m) | ATE P95 (m) | ATE max (m) |
+|---|---:|---:|---:|---:|
+| 原始 ROS2 realtime | 2,019 | 0.558103 | 0.856754 | 0.922600 |
+| deterministic offline | 2,022 | 0.545678 | 0.818931 | 0.904799 |
+
+Realtime ATE 相对 offline 反而高 `2.28%`，没有接近预期的 `0.39–0.45 m`。ROS2 bag
+正常播完（exit code 0），左右相机各记录 1 次同步丢弃；offline 完整消费
+`2,032/2,032` canonical pairs。两边均无 solver failure、DDS、SIGSEGV 或 NaN marker，
+且 LTV 完全关闭、没有生成 LTV debug 数据。
+
+并行负载是本检查的限制，因此不把 `2.28%` 作为精确的链路性能差异；但 realtime ATE
+没有改善且明显偏离 `0.39–0.45 m`，已经足够用于本轮预设的 stop/go 判定。
+
+因此该 sanity check **不支持“0.54 m 主要由 offline replay 链路造成”**；按预设规则
+不继续追查 replay 链路，恢复五模式统一主批次。完整输入与结果保存在
+`/home/he/output/ltv_replay_sanity_mh04/`，判定文件为 `sanity_summary.json`。
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run one Stage 6/6b baseline or joint replay as an atomic transaction."""
+"""Run one frozen LTV factor mode as an atomic deterministic replay."""
 
 import argparse
 import csv
@@ -42,6 +42,12 @@ MODES = {
         "ltv_enable_gravity_quality_gate": "1",
         "ltv_enable_velocity_quality_gate": "0",
     },
+    "velocity_only": {
+        "ltv_enable_gravity_factor": "0",
+        "ltv_enable_velocity_factor": "1",
+        "ltv_enable_gravity_quality_gate": "0",
+        "ltv_enable_velocity_quality_gate": "0",
+    },
 }
 
 FROZEN_SETTINGS = {
@@ -50,6 +56,7 @@ FROZEN_SETTINGS = {
     "show_track": "0",
     "save_image": "0",
     "multiple_thread": "0",
+    "load_previous_pose_graph": "0",
     "ltv_log_debug": "1",
     "ltv_enable_velocity_oracle_gate": "0",
     "ltv_velocity_oracle_mask_path": '\"\"',
@@ -111,6 +118,8 @@ def factor_diagnostics(path, mode):
         "velocity_base_eligible_count": 0,
         "velocity_gate_pass_count": 0,
         "velocity_factor_added_count": 0,
+        "velocity_oracle_mask_loaded_count": 0,
+        "velocity_oracle_mask_hit_count": 0,
         "reset_count": 0,
     })
     gravity_reasons = Counter()
@@ -146,6 +155,10 @@ def factor_diagnostics(path, mode):
             counts["velocity_gate_pass_count"] += values["velocity_gate_pass"]
             counts["velocity_factor_added_count"] += values[
                 "velocity_factor_added"]
+            counts["velocity_oracle_mask_loaded_count"] += values[
+                "velocity_oracle_mask_loaded"]
+            counts["velocity_oracle_mask_hit_count"] += values[
+                "velocity_oracle_mask_hit"]
             if row["reset_reason"] != "none":
                 counts["reset_count"] += 1
             gravity_reasons[str(gravity_reason_mask)] += 1
@@ -197,6 +210,15 @@ def factor_diagnostics(path, mode):
                 "gravity_only gravity factor/gate pass counts differ")
         if counts["velocity_factor_added_count"] != 0:
             raise RuntimeError("gravity_only mode added a velocity factor")
+    if mode == "velocity_only":
+        if counts["gravity_factor_added_count"] != 0:
+            raise RuntimeError("velocity_only mode added a gravity factor")
+        if counts["velocity_factor_added_count"] == 0:
+            raise RuntimeError("velocity_only mode added no velocity factors")
+        if (counts["velocity_factor_added_count"] !=
+                counts["velocity_base_eligible_count"]):
+            raise RuntimeError(
+                "velocity_only fixed velocity factor count is inconsistent")
     if mode in ("joint", "joint_v_gate"):
         if counts["gravity_factor_added_count"] == 0:
             raise RuntimeError("joint mode added no gravity factors")
@@ -312,7 +334,7 @@ def main():
     parser.add_argument("--output-root", required=True, type=Path)
     parser.add_argument(
         "--stage6-baseline-root", type=Path,
-        default=Path("/home/he/output/ltv_stage6"))
+        help="optional historical baseline root for an explicit SHA check")
     arguments = parser.parse_args()
 
     metadata_path = arguments.cache / "metadata.json"
@@ -352,6 +374,8 @@ def main():
         "ground_truth_sha256": metadata["ground_truth_sha256"],
         "base_config": str(arguments.config.resolve()),
         "base_config_sha256": base_config_sha,
+        "replay": str(Path(arguments.replay).resolve()),
+        "replay_sha256": sha256(Path(arguments.replay)),
         "effective_config_sha256": effective_config_sha,
         "mode": arguments.mode,
         "frozen_settings": settings,
@@ -368,7 +392,7 @@ def main():
         temporary_config.write(config_text)
         temporary_config.close()
         with (partial / "replay.log").open("w", encoding="utf-8") as log:
-            subprocess.run(
+            completed = subprocess.run(
                 [arguments.replay, str(temporary_path),
                  str(arguments.cache.resolve())],
                 check=True, stdout=log, stderr=subprocess.STDOUT)
@@ -380,7 +404,9 @@ def main():
         if sha256(ground_truth) != metadata["ground_truth_sha256"]:
             raise RuntimeError("official GT changed during replay")
         diagnostics = validate_output(partial, metadata, arguments.mode)
-        if arguments.mode == "baseline":
+        diagnostics["replay_exit_code"] = completed.returncode
+        if (arguments.mode == "baseline" and
+                arguments.stage6_baseline_root is not None):
             diagnostics["stage6_baseline_vio_sha256"] = validate_baseline_vio(
                 partial / "vio.csv",
                 arguments.stage6_baseline_root / arguments.cache.name /

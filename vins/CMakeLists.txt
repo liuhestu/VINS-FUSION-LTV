@@ -152,6 +152,10 @@ if(BUILD_TESTING)
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_diagnose_stage6c_mh01.py)
   add_test(NAME test_audit_stage6b_common_alignment
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_audit_stage6b_common_alignment.py)
+  add_test(NAME test_evaluate_euroc_final
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_evaluate_euroc_final.py)
+  add_test(NAME test_run_euroc_final_experiment
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_run_euroc_final_experiment.py)
 endif()
 
 # added from DEBUG

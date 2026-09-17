@@ -46,7 +46,7 @@ class Stage6JointTest(unittest.TestCase):
             writer.writerows(rows)
         return path
 
-    def test_effective_config_covers_both_modes_and_frozen_parameters(self):
+    def test_effective_config_covers_all_modes_and_frozen_parameters(self):
         keys = set(STAGE6.FROZEN_SETTINGS)
         keys.update({"output_path", "ltv_debug_csv_path"})
         for mode in STAGE6.MODES.values():
@@ -60,6 +60,8 @@ class Stage6JointTest(unittest.TestCase):
             base, "joint_v_gate", output)
         gravity_only, _ = STAGE6.effective_config(
             base, "gravity_only", output)
+        velocity_only, _ = STAGE6.effective_config(
+            base, "velocity_only", output)
 
         self.assertIn("ltv_enable_gravity_factor: 0", baseline)
         self.assertIn("ltv_enable: 1", baseline)
@@ -88,6 +90,11 @@ class Stage6JointTest(unittest.TestCase):
         self.assertIn("ltv_enable_gravity_quality_gate: 1", gravity_only)
         self.assertIn("ltv_enable_velocity_factor: 0", gravity_only)
         self.assertIn("ltv_enable_velocity_quality_gate: 0", gravity_only)
+        self.assertIn("ltv_enable_gravity_factor: 0", velocity_only)
+        self.assertIn("ltv_enable_gravity_quality_gate: 0", velocity_only)
+        self.assertIn("ltv_enable_velocity_factor: 1", velocity_only)
+        self.assertIn("ltv_enable_velocity_quality_gate: 0", velocity_only)
+        self.assertIn("load_previous_pose_graph: 0", velocity_only)
 
     def test_joint_diagnostics_require_gate_and_fixed_velocity(self):
         rows = [self.row(
@@ -177,6 +184,26 @@ class Stage6JointTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "velocity factor"):
                 STAGE6.factor_diagnostics(
                     self.write_diagnostics(root, invalid), "gravity_only")
+
+    def test_velocity_only_requires_fixed_velocity_and_no_gravity(self):
+        valid = [self.row(
+            velocity_factor_added=1, velocity_factor_base_eligible=1)]
+        gravity = [self.row(
+            gravity_factor_added=1, gravity_gate_base_eligible=1,
+            gravity_gate_pass=1, velocity_factor_added=1,
+            velocity_factor_base_eligible=1)]
+        missing = [self.row(velocity_factor_base_eligible=1)]
+        with tempfile.TemporaryDirectory() as root:
+            result = STAGE6.factor_diagnostics(
+                self.write_diagnostics(root, valid), "velocity_only")
+            self.assertEqual(result["gravity_factor_added_count"], 0)
+            self.assertEqual(result["velocity_factor_added_count"], 1)
+            with self.assertRaisesRegex(RuntimeError, "gravity factor"):
+                STAGE6.factor_diagnostics(
+                    self.write_diagnostics(root, gravity), "velocity_only")
+            with self.assertRaisesRegex(RuntimeError, "no velocity factors"):
+                STAGE6.factor_diagnostics(
+                    self.write_diagnostics(root, missing), "velocity_only")
 
     def test_transaction_publish_and_failure_preservation(self):
         with tempfile.TemporaryDirectory() as root_string:
