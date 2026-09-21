@@ -25,7 +25,13 @@ Estimator::Estimator(): f_manager{Rs}, tmp_pre_integration(nullptr),
 
 Estimator::~Estimator()
 {
-    if (MULTIPLE_THREAD)
+    stopProcessing();
+}
+
+void Estimator::stopProcessing()
+{
+    stopThreads.store(true);
+    if (processThread.joinable())
     {
         processThread.join();
         printf("join thread \n");
@@ -195,6 +201,7 @@ void Estimator::setParameter()
     std::cout << "MULTIPLE_THREAD is " << MULTIPLE_THREAD << '\n';
     if (MULTIPLE_THREAD && !initThreadFlag)
     {
+        stopThreads.store(false);
         initThreadFlag = true;
         processThread = std::thread(&Estimator::processMeasurements, this);
     }
@@ -370,7 +377,7 @@ bool Estimator::IMUAvailable(double t)
 
 void Estimator::processMeasurements()
 {
-    while (1)
+    while (!stopThreads.load())
     {
         // cout << "[processMeasurements]  loop - start" << endl;
 
@@ -382,7 +389,7 @@ void Estimator::processMeasurements()
             feature = featureBuf.front();
             curTime = feature.first + td;
             // std::cout << "t0: " << std::fixed << curTime << std::endl;
-            while(1)
+            while(!stopThreads.load())
             {
                 if ((!USE_IMU  || IMUAvailable(feature.first + td)))
                     break;
@@ -395,6 +402,8 @@ void Estimator::processMeasurements()
                     std::this_thread::sleep_for(dura);
                 }
             }
+            if (stopThreads.load())
+                return;
             // cout << "2" << endl;
             mBuf.lock();
             if(USE_IMU)

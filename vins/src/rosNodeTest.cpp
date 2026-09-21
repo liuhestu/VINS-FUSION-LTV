@@ -80,7 +80,7 @@ cv::Mat getImageFromMsg(const sensor_msgs::msg::Image::ConstPtr &img_msg)
 // extract images with same timestamp from two topics
 void sync_process()
 {
-    while(1)
+    while(rclcpp::ok())
     {
         if(STEREO)
         {
@@ -301,6 +301,10 @@ int main(int argc, char **argv)
     rclcpp::executors::MultiThreadedExecutor executor;
     executor.add_node(n);
     executor.spin();
+    if (sync_thread.joinable())
+        sync_thread.join();
+    estimator.stopProcessing();
+    unregisterPub();
 
     return 0;
 }

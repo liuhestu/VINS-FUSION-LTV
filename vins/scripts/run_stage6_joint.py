@@ -84,10 +84,10 @@ FAILURE_MARKERS = (
 )
 
 
-def effective_config(base_text, mode, output):
+def effective_config(base_text, mode, output, frozen_settings=None):
     if mode not in MODES:
         raise ValueError(f"unsupported Stage 6/6b mode: {mode}")
-    settings = dict(FROZEN_SETTINGS)
+    settings = dict(FROZEN_SETTINGS if frozen_settings is None else frozen_settings)
     settings.update(MODES[mode])
     settings.update({
         "output_path": f'\"{output}\"',
@@ -333,6 +333,9 @@ def main():
     parser.add_argument("--replay", required=True)
     parser.add_argument("--output-root", required=True, type=Path)
     parser.add_argument(
+        "--preserve-config-frequency", action="store_true",
+        help="preserve the dataset adapter's front-end frequency")
+    parser.add_argument(
         "--stage6-baseline-root", type=Path,
         help="optional historical baseline root for an explicit SHA check")
     arguments = parser.parse_args()
@@ -363,8 +366,12 @@ def main():
     partial.mkdir()
 
     base_config_sha = sha256(arguments.config)
+    frozen_settings = dict(FROZEN_SETTINGS)
+    if arguments.preserve_config_frequency:
+        del frozen_settings["freq"]
     config_text, settings = effective_config(
-        arguments.config.read_text(encoding="utf-8"), arguments.mode, partial)
+        arguments.config.read_text(encoding="utf-8"), arguments.mode, partial,
+        frozen_settings)
     effective_config_sha = hashlib.sha256(config_text.encode()).hexdigest()
     (partial / "effective_config.yaml").write_text(config_text, encoding="utf-8")
     input_manifest = {

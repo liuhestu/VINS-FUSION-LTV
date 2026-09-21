@@ -1,0 +1,15 @@
+%YAML:1.0
+---
+model_type: KANNALA_BRANDT
+camera_name: uzhfpv_outdoor_cam0
+image_width: 640
+image_height: 480
+projection_parameters:
+   k2: -0.005719912631104124
+   k3: 0.004742449009601135
+   k4: 0.0012060658036136048
+   k5: -0.001580292679344826
+   mu: 277.4786896484645
+   mv: 277.42548548840034
+   u0: 320.1052053576385
+   v0: 242.10083077857894

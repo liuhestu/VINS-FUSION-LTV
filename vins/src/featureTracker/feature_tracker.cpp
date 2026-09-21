@@ -55,6 +55,8 @@ FeatureTracker::FeatureTracker()
 void FeatureTracker::setMask()
 {
     mask = cv::Mat(row, col, CV_8UC1, cv::Scalar(255));
+    if (USE_MASK)
+        cv::bitwise_and(mask, MASK0, mask);
 
     // prefer to keep features that are tracked for long time
     vector<pair<int, pair<cv::Point2f, int>>> cnt_pts_id;
@@ -252,7 +254,8 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
 #endif
     
         for (int i = 0; i < int(cur_pts.size()); i++)
-            if (status[i] && !inBorder(cur_pts[i]))
+            if (status[i] && (!inBorder(cur_pts[i]) ||
+                (USE_MASK && MASK0.at<uchar>(cvRound(cur_pts[i].y), cvRound(cur_pts[i].x)) == 0)))
                 status[i] = 0;
         reduceVector(prev_pts, status);
         reduceVector(cur_pts, status);
@@ -419,6 +422,15 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
                 // printf("gpu left right optical flow cost %fms\n",t_og1.toc());
             }
 #endif
+            for (size_t i = 0; i < status.size(); i++)
+            {
+                if (!status[i])
+                    continue;
+                if (!inBorder(cur_right_pts[i]) ||
+                    (USE_MASK && MASK1.at<uchar>(cvRound(cur_right_pts[i].y),
+                                                cvRound(cur_right_pts[i].x)) == 0))
+                    status[i] = 0;
+            }
             ids_right = ids;
             reduceVector(cur_right_pts, status);
             reduceVector(ids_right, status);

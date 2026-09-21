@@ -88,6 +88,18 @@ def read_pair_indexes(path):
     return parsed
 
 
+def filter_imu_bracketed_pairs(pairs, imu_timestamps, margin=0):
+    """Keep frames with an IMU sample at/before and strictly after them."""
+    if not imu_timestamps:
+        raise RuntimeError("cannot bracket frames without IMU samples")
+    if margin < 0:
+        raise ValueError("IMU bracketing margin must be non-negative")
+    lower = imu_timestamps[0] + margin
+    upper = imu_timestamps[-1] - margin
+    return [pair for pair in pairs
+            if lower <= pair["pair_timestamp"] < upper]
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--bag", required=True, type=Path)
@@ -97,6 +109,12 @@ def main():
     parser.add_argument("--imu-topic", default="/imu0")
     parser.add_argument("--left-topic", default="/cam0/image_raw")
     parser.add_argument("--right-topic", default="/cam1/image_raw")
+    parser.add_argument(
+        "--require-imu-bracketing", action="store_true",
+        help="drop boundary stereo pairs without IMU support on both sides")
+    parser.add_argument(
+        "--imu-bracketing-margin-s", type=float, default=0.0,
+        help="extra IMU coverage required before and after retained frames")
     args = parser.parse_args()
     if not args.bag.exists() or not args.ground_truth.is_file():
         raise RuntimeError("source bag or official ASL ground truth is missing")
@@ -122,6 +140,11 @@ def main():
             [args.stereo_pairer, str(left_csv), str(right_csv), str(raw_pairs)],
             check=True)
         pairs = read_pair_indexes(raw_pairs)
+        raw_paired_count = len(pairs)
+        if args.require_imu_bracketing:
+            margin_ns = int(round(args.imu_bracketing_margin_s * 1e9))
+            pairs = filter_imu_bracketed_pairs(
+                pairs, [item[0] for item in imu], margin_ns)
         if not pairs:
             raise RuntimeError("shared stereo synchronizer produced no pairs")
 
@@ -130,19 +153,19 @@ def main():
         right_by_index = {source_index: (stamp, pixels)
                           for stamp, source_index, pixels in right}
         canonical_rows = []
-        for pair in pairs:
+        for canonical_index, pair in enumerate(pairs):
             left_stamp, left_image = left_by_index[pair["left_index"]]
             right_stamp, right_image = right_by_index[pair["right_index"]]
             if (left_stamp != pair["left_timestamp"] or
                     right_stamp != pair["right_timestamp"]):
                 raise RuntimeError("pairer/source timestamp mismatch")
-            left_png = f"images/{pair['pair_index']:06d}_left.png"
-            right_png = f"images/{pair['pair_index']:06d}_right.png"
+            left_png = f"images/{canonical_index:06d}_left.png"
+            right_png = f"images/{canonical_index:06d}_right.png"
             if (not cv2.imwrite(str(temporary / left_png), left_image) or
                     not cv2.imwrite(str(temporary / right_png), right_image)):
                 raise RuntimeError("failed to write lossless PNG")
             canonical_rows.append((
-                pair["pair_index"], pair["pair_timestamp"], left_stamp,
+                canonical_index, pair["pair_timestamp"], left_stamp,
                 right_stamp, pair["left_index"], pair["right_index"],
                 left_png, right_png))
 
@@ -165,6 +188,9 @@ def main():
             "paired_count": paired_count,
             "dropped_left_count": left_count - paired_count,
             "dropped_right_count": right_count - paired_count,
+            "imu_bracket_dropped_pair_count": raw_paired_count - paired_count,
+            "require_imu_bracketing": args.require_imu_bracketing,
+            "imu_bracketing_margin_s": args.imu_bracketing_margin_s,
             "left_coverage": paired_count / left_count,
             "right_coverage": paired_count / right_count,
             "frame_time_range_ns": [

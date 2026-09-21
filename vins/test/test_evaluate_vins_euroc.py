@@ -23,6 +23,78 @@ SPEC.loader.exec_module(EVALUATOR)
 
 class EvaluateVinsEurocTest(unittest.TestCase):
 
+    def _write_uzh(self, lines):
+        stream = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+        stream.write("# timestamp tx ty tz qx qy qz qw\n")
+        stream.write("\n".join(lines) + "\n")
+        stream.close()
+        return stream.name
+
+    def test_uzh_eight_column_reader(self):
+        path = self._write_uzh([
+            "1.000000001 1 2 3 0 0 0 1",
+            "1.100000001 2 3 4 0 0 0.7071067811865476 0.7071067811865476",
+        ])
+        try:
+            ground_truth = EVALUATOR.read_uzh_ground_truth(path, (0.9, 1.2))
+        finally:
+            os.unlink(path)
+        self.assertEqual(ground_truth["source"], "uzh_archives")
+        np.testing.assert_allclose(ground_truth["timestamps"], [1.000000001, 1.100000001])
+        np.testing.assert_allclose(ground_truth["positions"], [[1, 2, 3], [2, 3, 4]])
+        self.assertEqual(len(ground_truth["sha256"]), 64)
+
+    def test_uzh_reader_rejects_wrong_field_count(self):
+        path = self._write_uzh(["1 1 2 3 0 0 1"])
+        try:
+            with self.assertRaisesRegex(RuntimeError, "expected 8"):
+                EVALUATOR.read_uzh_ground_truth(path)
+        finally:
+            os.unlink(path)
+
+    def test_uzh_reader_rejects_nan(self):
+        path = self._write_uzh(["1 1 nan 3 0 0 0 1"])
+        try:
+            with self.assertRaisesRegex(RuntimeError, "non-finite"):
+                EVALUATOR.read_uzh_ground_truth(path)
+        finally:
+            os.unlink(path)
+
+    def test_uzh_reader_rejects_non_increasing_time(self):
+        path = self._write_uzh([
+            "1 1 2 3 0 0 0 1",
+            "1 2 3 4 0 0 0 1",
+        ])
+        try:
+            with self.assertRaisesRegex(RuntimeError, "strictly increasing"):
+                EVALUATOR.read_uzh_ground_truth(path)
+        finally:
+            os.unlink(path)
+
+    def test_uzh_reader_rejects_zero_quaternion(self):
+        path = self._write_uzh(["1 1 2 3 0 0 0 0"])
+        try:
+            with self.assertRaisesRegex(RuntimeError, "invalid quaternion"):
+                EVALUATOR.read_uzh_ground_truth(path)
+        finally:
+            os.unlink(path)
+
+    def test_uzh_reader_rejects_non_unit_quaternion(self):
+        path = self._write_uzh(["1 1 2 3 0 0 0 2"])
+        try:
+            with self.assertRaisesRegex(RuntimeError, "invalid quaternion"):
+                EVALUATOR.read_uzh_ground_truth(path)
+        finally:
+            os.unlink(path)
+
+    def test_uzh_reader_rejects_no_bag_overlap(self):
+        path = self._write_uzh(["1 1 2 3 0 0 0 1"])
+        try:
+            with self.assertRaisesRegex(RuntimeError, "does not overlap"):
+                EVALUATOR.read_uzh_ground_truth(path, (2, 3))
+        finally:
+            os.unlink(path)
+
     def test_json_output_includes_position_and_rotation_p95(self):
         times = np.asarray([1.0, 2.0, 3.0, 4.0])
         positions = np.asarray([

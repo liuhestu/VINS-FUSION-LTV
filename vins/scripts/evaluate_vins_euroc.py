@@ -4,6 +4,8 @@
 
 import argparse
 import csv
+import datetime
+import hashlib
 import json
 import math
 import os
@@ -17,6 +19,179 @@ GROUND_TRUTH_TOPICS = (
     "/leica/position",
     "leica/position",
 )
+
+UZH_GROUND_TRUTH_TOPICS = (
+    "/groundtruth/pose",
+    "groundtruth/pose",
+    "/groundtruth/odometry",
+    "groundtruth/odometry",
+)
+
+
+def sha256_file(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def read_bag_time_range(bag_path):
+    metadata_path = os.path.join(bag_path, "metadata.yaml")
+    try:
+        import yaml
+        with open(metadata_path, encoding="utf-8") as stream:
+            metadata = yaml.safe_load(stream)["rosbag2_bagfile_information"]
+        start_ns = metadata["starting_time"]["nanoseconds_since_epoch"]
+        duration_ns = metadata["duration"]["nanoseconds"]
+    except (ImportError, KeyError, OSError, TypeError, ValueError) as error:
+        raise RuntimeError(f"cannot read ROS 2 bag time range: {metadata_path}") from error
+    return start_ns * 1e-9, (start_ns + duration_ns) * 1e-9
+
+
+def discover_uzh_ground_truth(bag_path):
+    sequence = os.path.basename(os.path.normpath(bag_path))
+    if sequence.endswith("_db"):
+        sequence = sequence[:-3]
+    prefixes = ("indoor_forward_", "indoor_45_", "outdoor_forward_", "outdoor_45_")
+    if not sequence.startswith(prefixes):
+        return None
+    dataset_root = os.path.dirname(os.path.dirname(os.path.abspath(bag_path)))
+    candidate = os.path.join(dataset_root, "archives", sequence, "groundtruth.txt")
+    return candidate if os.path.isfile(candidate) else None
+
+
+def read_uzh_ground_truth(path, bag_time_range=None):
+    timestamps = []
+    positions = []
+    rotations = []
+    with open(path, encoding="utf-8") as stream:
+        for line_number, line in enumerate(stream, 1):
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            fields = stripped.split()
+            if len(fields) != 8:
+                raise RuntimeError(
+                    f"UZH ground truth line {line_number} has {len(fields)} fields, expected 8")
+            try:
+                values = np.asarray([float(field) for field in fields], dtype=float)
+            except ValueError as error:
+                raise RuntimeError(
+                    f"UZH ground truth line {line_number} contains a non-numeric value") from error
+            if not np.all(np.isfinite(values)):
+                raise RuntimeError(
+                    f"UZH ground truth line {line_number} contains a non-finite value")
+            if timestamps and values[0] <= timestamps[-1]:
+                raise RuntimeError(
+                    f"UZH ground-truth timestamps are not strictly increasing at line {line_number}")
+            quaternion = values[4:8]
+            quaternion_norm = float(np.linalg.norm(quaternion))
+            if quaternion_norm < 1e-12 or abs(quaternion_norm - 1.0) > 1e-3:
+                raise RuntimeError(
+                    f"UZH ground truth line {line_number} has an invalid quaternion")
+            timestamps.append(values[0])
+            positions.append(values[1:4])
+            # File order is qx qy qz qw; retain orientation for traceability.
+            rotations.append(quaternion_to_rotation(
+                quaternion[3], quaternion[0], quaternion[1], quaternion[2]))
+    if not timestamps:
+        raise RuntimeError("UZH ground-truth file contains no samples")
+    timestamps = np.asarray(timestamps)
+    if bag_time_range is not None:
+        bag_start, bag_end = bag_time_range
+        if timestamps[-1] < bag_start or timestamps[0] > bag_end:
+            raise RuntimeError(
+                "UZH ground truth does not overlap the ROS 2 bag time range")
+    return {
+        "source": "uzh_archives",
+        "source_type": "uzh_eight_column",
+        "source_path": os.path.abspath(path),
+        "sha256": sha256_file(path),
+        "topic": None,
+        "timestamps": timestamps,
+        "positions": np.asarray(positions),
+        "rotations": np.asarray(rotations),
+        "velocities": None,
+    }
+
+
+def discover_uzh_leica(bag_path):
+    sequence = os.path.basename(os.path.normpath(bag_path))
+    if sequence.endswith("_db"):
+        sequence = sequence[:-3]
+    if sequence.endswith("_snapdragon_with_gt"):
+        sequence = sequence[:-len("_snapdragon_with_gt")]
+    dataset_root = os.path.dirname(os.path.dirname(os.path.abspath(bag_path)))
+    candidate = os.path.join(dataset_root, "groundtruth_official", sequence, "leica.txt")
+    return candidate if os.path.isfile(candidate) else None
+
+
+def _uzh_sequence_name(bag_path):
+    sequence = os.path.basename(os.path.normpath(bag_path))
+    if sequence.endswith("_db"):
+        sequence = sequence[:-3]
+    return sequence
+
+
+def load_uzh_time_offset_manifest(path, bag_path, ground_truth):
+    if not os.path.isfile(path):
+        raise RuntimeError(
+            f"UZH time-offset audit manifest is missing: {path}; "
+            "run audit_uzhfpv_time_offsets.py before formal ATE")
+    try:
+        with open(path, encoding="utf-8") as stream:
+            manifest = json.load(stream)
+    except (OSError, ValueError) as error:
+        raise RuntimeError(f"cannot read UZH time-offset manifest: {path}") from error
+    if manifest.get("schema") != "uzhfpv-gt-time-offset-audit-v1":
+        raise RuntimeError("unsupported UZH time-offset manifest schema")
+    sequence_name = _uzh_sequence_name(bag_path)
+    entry = next((item for item in manifest.get("sequences", [])
+                  if item.get("sequence") == sequence_name), None)
+    if entry is None:
+        raise RuntimeError(
+            f"UZH time-offset manifest has no entry for {sequence_name}")
+    if entry.get("gt_sha256") != ground_truth.get("sha256"):
+        raise RuntimeError("UZH time-offset manifest GT hash mismatch")
+    metadata_path = os.path.join(bag_path, "metadata.yaml")
+    if (not os.path.isfile(metadata_path) or
+            entry.get("bag_metadata_sha256") != sha256_file(metadata_path)):
+        raise RuntimeError("UZH time-offset manifest bag metadata hash mismatch")
+    offset = entry.get("applied_gt_time_offset_s")
+    if not isinstance(offset, (int, float)) or not math.isfinite(offset):
+        raise RuntimeError("UZH time-offset manifest has an invalid applied offset")
+    return manifest, entry, float(offset)
+
+
+def audit_uzh_leica(path):
+    timestamps = []
+    finite_positions = True
+    sample_count = 0
+    with open(path, encoding="utf-8", errors="replace", newline="") as stream:
+        for row in csv.reader(stream):
+            if len(row) < 13 or row[0] != "3" or row[6] == "":
+                continue
+            try:
+                timestamp = datetime.datetime.strptime(
+                    row[6], "%Y-%m-%d %H:%M:%S.%f").replace(
+                        tzinfo=datetime.timezone.utc).timestamp()
+                position = [float(value) for value in row[10:13]]
+            except (ValueError, IndexError):
+                continue
+            sample_count += 1
+            timestamps.append(timestamp)
+            finite_positions = finite_positions and all(math.isfinite(value) for value in position)
+    if not sample_count:
+        raise RuntimeError(f"raw Leica file contains no parseable samples: {path}")
+    return {
+        "path": os.path.abspath(path),
+        "sha256": sha256_file(path),
+        "samples": sample_count,
+        "start_time_utc_s": min(timestamps),
+        "end_time_utc_s": max(timestamps),
+        "positions_finite": finite_positions,
+    }
 
 
 def quaternion_to_rotation(w, x, y, z):
@@ -62,7 +237,8 @@ def read_vins(path):
 
 def read_bag_ground_truth(bag_path, requested_topic=None):
     import rosbag2_py
-    from geometry_msgs.msg import PointStamped, TransformStamped
+    from geometry_msgs.msg import PointStamped, PoseStamped, TransformStamped
+    from nav_msgs.msg import Odometry
     from rclpy.serialization import deserialize_message
 
     reader = rosbag2_py.SequentialReader()
@@ -71,7 +247,7 @@ def read_bag_ground_truth(bag_path, requested_topic=None):
     topic_types = {topic.name: topic.type for topic in reader.get_all_topics_and_types()}
     topic = requested_topic
     if topic is None:
-        topic = next((candidate for candidate in GROUND_TRUTH_TOPICS
+        topic = next((candidate for candidate in GROUND_TRUTH_TOPICS + UZH_GROUND_TRUTH_TOPICS
                       if candidate in topic_types), None)
     if topic not in topic_types:
         raise RuntimeError("no supported EuRoC ground-truth topic found")
@@ -83,30 +259,59 @@ def read_bag_ground_truth(bag_path, requested_topic=None):
     elif message_type == "geometry_msgs/msg/PointStamped":
         message_class = PointStamped
         has_orientation = False
+    elif message_type == "geometry_msgs/msg/PoseStamped":
+        message_class = PoseStamped
+        has_orientation = True
+    elif message_type == "nav_msgs/msg/Odometry":
+        message_class = Odometry
+        has_orientation = True
     else:
         raise RuntimeError(f"unsupported ground-truth message type: {message_type}")
 
     timestamps = []
     positions = []
     rotations = []
+    source_digest = hashlib.sha256()
     while reader.has_next():
         current_topic, data, _ = reader.read_next()
         if current_topic != topic:
             continue
+        source_digest.update(data)
         message = deserialize_message(data, message_class)
         timestamps.append(message.header.stamp.sec + message.header.stamp.nanosec * 1e-9)
-        if has_orientation:
+        if message_type == "geometry_msgs/msg/TransformStamped":
             positions.append([message.transform.translation.x,
                               message.transform.translation.y,
                               message.transform.translation.z])
             rotation = message.transform.rotation
             rotations.append(quaternion_to_rotation(
                 rotation.w, rotation.x, rotation.y, rotation.z))
-        else:
+        elif message_type == "geometry_msgs/msg/PointStamped":
             positions.append([message.point.x, message.point.y, message.point.z])
+        else:
+            pose = message.pose if message_type == "geometry_msgs/msg/PoseStamped" else message.pose.pose
+            positions.append([pose.position.x, pose.position.y, pose.position.z])
+            rotations.append(quaternion_to_rotation(
+                pose.orientation.w, pose.orientation.x,
+                pose.orientation.y, pose.orientation.z))
+
+    is_uzh = topic in UZH_GROUND_TRUTH_TOPICS
+    if not timestamps:
+        raise RuntimeError(f"ground-truth topic contains no messages: {topic}")
+    if is_uzh:
+        timestamp_values = np.asarray(timestamps)
+        position_values = np.asarray(positions)
+        if not np.all(np.isfinite(timestamp_values)) or not np.all(np.isfinite(position_values)):
+            raise RuntimeError("UZH bag ground truth contains non-finite values")
+        if np.any(np.diff(timestamp_values) <= 0.0):
+            raise RuntimeError("UZH bag ground-truth timestamps are not strictly increasing")
 
     return {
-        "source": "rosbag_vicon" if has_orientation else "rosbag_leica",
+        "source": ("uzh_rosbag_groundtruth" if is_uzh else
+                   ("rosbag_vicon" if has_orientation else "rosbag_leica")),
+        "source_type": message_type,
+        "source_path": os.path.abspath(bag_path),
+        "sha256": source_digest.hexdigest(),
         "topic": topic,
         "timestamps": np.asarray(timestamps),
         "positions": np.asarray(positions),
@@ -273,6 +478,11 @@ def main():
     parser.add_argument("--ground-truth-topic")
     parser.add_argument("--ground-truth-csv",
                         help="EuRoC state_groundtruth_estimate0/data.csv")
+    parser.add_argument("--ground-truth-uzh",
+                        help="UZH-FPV eight-column groundtruth.txt")
+    parser.add_argument(
+        "--uzh-time-offset-manifest",
+        help="frozen UZH timestamp audit; defaults to config/uzhfpv_gt_time_offsets.json")
     parser.add_argument("--max-time-error", type=float, default=0.02)
     parser.add_argument("--velocity-difference-window", type=float, default=0.1)
     parser.add_argument("--allow-position-velocity-fallback", action="store_true",
@@ -281,10 +491,29 @@ def main():
     args = parser.parse_args()
 
     vins_times, vins_positions, vins_rotations, vins_velocities = read_vins(args.trajectory)
+    uzh_path = args.ground_truth_uzh or discover_uzh_ground_truth(args.bag)
     official_path = args.ground_truth_csv or discover_official_ground_truth(args.bag)
-    ground_truth = (read_official_ground_truth(official_path) if official_path else
-                    read_bag_ground_truth(args.bag, args.ground_truth_topic))
-    gt_times = ground_truth["timestamps"]
+    if args.ground_truth_csv:
+        ground_truth = read_official_ground_truth(args.ground_truth_csv)
+    elif uzh_path:
+        ground_truth = read_uzh_ground_truth(uzh_path, read_bag_time_range(args.bag))
+    elif official_path:
+        ground_truth = read_official_ground_truth(official_path)
+    else:
+        ground_truth = read_bag_ground_truth(args.bag, args.ground_truth_topic)
+    is_uzh = ground_truth["source"].startswith("uzh_")
+    time_audit_manifest = None
+    time_audit_entry = None
+    applied_gt_time_offset = 0.0
+    if is_uzh:
+        default_manifest = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "config", "uzhfpv_gt_time_offsets.json")
+        manifest_path = args.uzh_time_offset_manifest or default_manifest
+        time_audit_manifest, time_audit_entry, applied_gt_time_offset = (
+            load_uzh_time_offset_manifest(
+                manifest_path, args.bag, ground_truth))
+    gt_times = ground_truth["timestamps"] + applied_gt_time_offset
     gt_positions = ground_truth["positions"]
     gt_rotations = ground_truth["rotations"]
     vins_indices, gt_indices, time_errors = match_nearest(
@@ -311,7 +540,33 @@ def main():
         "maximum_position_error_m": float(np.max(position_errors)),
     }
 
-    if gt_rotations is not None:
+    if is_uzh:
+        result.update({
+            "ground_truth_path": ground_truth["source_path"],
+            "ground_truth_type": ground_truth["source_type"],
+            "ground_truth_sha256": ground_truth["sha256"],
+            "ground_truth_original_time_range_s": [
+                float(ground_truth["timestamps"][0]),
+                float(ground_truth["timestamps"][-1])],
+            "ground_truth_evaluation_time_range_s": [
+                float(gt_times[0]), float(gt_times[-1])],
+            "estimated_raw_time_offset_s": time_audit_entry["raw_offset_s"],
+            "calibration_td_s": time_audit_entry["calibration_td_s"],
+            "estimated_residual_gt_offset_s": time_audit_entry[
+                "residual_offset_s"],
+            "applied_gt_time_offset_s": applied_gt_time_offset,
+            "time_offset_manifest_sha256": sha256_file(
+                args.uzh_time_offset_manifest or default_manifest),
+            "time_offset_decision": time_audit_manifest["families"][
+                time_audit_entry["family"]]["status"],
+            "orientation_metrics_status": "excluded_known_ground_truth_issue",
+            "velocity_metrics_status": "unavailable",
+        })
+        leica_path = discover_uzh_leica(args.bag)
+        if leica_path:
+            result["raw_leica_audit"] = audit_uzh_leica(leica_path)
+
+    if gt_rotations is not None and not is_uzh:
         if ground_truth["source"] == "official_csv":
             body_alignment = np.eye(3)
             orientation_alignment_samples = 0
@@ -352,7 +607,9 @@ def main():
     velocity_gt_source = "unavailable"
     velocity_vins_indices = np.asarray([], dtype=int)
     velocity_gt_values = np.empty((0, 3))
-    if ground_truth["velocities"] is not None:
+    if is_uzh:
+        pass
+    elif ground_truth["velocities"] is not None:
         velocity_vins_indices = vins_indices
         velocity_gt_values = ground_truth["velocities"][gt_indices]
         velocity_gt_source = "official"
@@ -382,7 +639,7 @@ def main():
             "velocity_p95_error_mps": float(np.percentile(velocity_errors, 95)),
             "maximum_velocity_error_mps": float(np.max(velocity_errors)),
         })
-    else:
+    elif not is_uzh:
         result["velocity_gt_source"] = "unavailable"
 
     if args.json:

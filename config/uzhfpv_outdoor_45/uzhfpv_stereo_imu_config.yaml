@@ -1,0 +1,99 @@
+%YAML:1.0
+---
+imu: 1
+num_of_cam: 2
+imu_topic: "/snappy_imu"
+image0_topic: "/snappy_cam/stereo_l"
+image1_topic: "/snappy_cam/stereo_r"
+output_path: "/home/he/output/uzhfpv"
+cam0_calib: "cam0.yaml"
+cam1_calib: "cam1.yaml"
+image_width: 640
+image_height: 480
+use_gpu: 0
+use_gpu_acc_flow: 0
+use_gpu_ceres: 0
+estimate_extrinsic: 0
+body_T_cam0: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: d
+   data: [-0.02404152321390999, -0.7184527320882637, 0.6951601807615759, 0.02496917321496482,
+          -0.9996640790624975, 0.01054269733041238, -0.0236765826320015, 0.01950941043096713,
+           0.009681642096550929, -0.6954958830129127, -0.7184648512755549, -0.01354663294438707,
+           0, 0, 0, 1]
+body_T_cam1: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: d
+   data: [-0.004527750456351745, -0.72082382560761, 0.6931035362139009, 0.02464281983017583,
+          -0.9999560749011353, 0.008951751262681554, 0.002777484049647746, -0.0598707404486382,
+          -0.008206567133703097, -0.6930605158178761, -0.7208326946456711, -0.01343194586135022,
+           0, 0, 0, 1]
+multiple_thread: 0
+max_cnt: 200
+min_dist: 15
+freq: 31
+F_threshold: 1.0
+show_track: 0
+flow_back: 1
+max_solver_time: 0.04
+max_num_iterations: 8
+keyframe_parallax: 10.0
+acc_n: 0.002
+gyr_n: 0.00016968
+acc_w: 0.003
+gyr_w: 0.000019393
+g_norm: 9.8065
+estimate_td: 1
+td: -0.008637511810764048
+use_mask: 0
+ltv_enable: 1
+ltv_log_debug: 1
+ltv_enable_gravity_factor: 0
+ltv_enable_velocity_factor: 0
+ltv_enable_gravity_quality_gate: 0
+ltv_enable_velocity_quality_gate: 0
+ltv_enable_velocity_oracle_gate: 0
+ltv_debug_csv_path: "/home/he/output/uzhfpv/ltv_debug.csv"
+ltv_max_features: 30
+ltv_min_features: 15
+ltv_feature_max_missed_frames: 2
+ltv_warmup_camera_updates: 20
+ltv_max_imu_dt: 0.05
+ltv_reset_gap: 0.2
+ltv_timestamp_tolerance: 0.005
+ltv_q_landmark: 1.0e-4
+ltv_v_landmark: 1.0e6
+ltv_v_velocity: 1.0e6
+ltv_v_gravity: 1.0e6
+ltv_initial_p_landmark: 1.0
+ltv_initial_p_velocity: 1.0
+ltv_initial_p_gravity: 1.0
+ltv_covariance_floor: 1.0e-9
+ltv_covariance_failure_threshold: -1.0e-3
+ltv_camera_euler_safety: 0.5
+ltv_max_camera_substeps: 100
+ltv_gravity_norm_min: 7.0
+ltv_gravity_norm_max: 12.0
+ltv_gravity_sigma_deg: 10.0
+ltv_velocity_gate_min_features: 25
+ltv_velocity_gate_max_normalized_innovation: 0.03
+ltv_velocity_gate_max_disagreement_mps: 0.5
+ltv_velocity_gate_reset_cooldown_frames: 10
+ltv_gravity_huber_delta: 2.0
+ltv_gravity_gate_min_features: 15
+ltv_gravity_gate_max_eta_norm_error: 0.2
+ltv_gravity_gate_max_normalized_innovation: 0.05
+ltv_gravity_gate_reset_cooldown_frames: 0
+ltv_velocity_sigma_mps: 1.0
+ltv_velocity_huber_delta: 2.0
+ltv_snapshot_max_time_error: 0.005
+ltv_velocity_oracle_mask_path: ""
+ltv_velocity_oracle_mask_column: "oracle_0"
+world_frame_id: "world"
+body_frame_id: "body"
+camera_frame_id: "camera"
+load_previous_pose_graph: 0
+save_image: 0
+pose_graph_save_path: "/home/he/output/uzhfpv/pose_graph"

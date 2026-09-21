@@ -65,7 +65,8 @@ extern int MULTIPLE_THREAD;
 extern map<int, Eigen::Vector3d> pts_gt;
 
 extern std::string IMAGE0_TOPIC, IMAGE1_TOPIC;
-extern std::string FISHEYE_MASK;
+extern int USE_MASK;
+extern cv::Mat MASK0, MASK1;
 extern std::vector<std::string> CAM_NAMES;
 extern int MAX_CNT;
 extern int MIN_DIST;
@@ -78,6 +79,8 @@ extern std::string CAMERA_FRAME_ID;
 extern ltv::LtvConfig LTV_CONFIG;
 
 void readParameters(std::string config_file);
+cv::Mat loadFeatureMask(const std::string &path, int width, int height,
+                        const std::string &parameter_name);
 
 enum SIZE_PARAMETERIZATION
 {

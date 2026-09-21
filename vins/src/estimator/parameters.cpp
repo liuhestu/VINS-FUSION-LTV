@@ -9,6 +9,8 @@
 
 #include "parameters.h"
 
+#include <stdexcept>
+
 double INIT_DEPTH;
 double MIN_PARALLAX;
 double ACC_N, ACC_W;
@@ -42,7 +44,8 @@ int USE_IMU;
 int MULTIPLE_THREAD;
 map<int, Eigen::Vector3d> pts_gt;
 std::string IMAGE0_TOPIC, IMAGE1_TOPIC;
-std::string FISHEYE_MASK;
+int USE_MASK;
+cv::Mat MASK0, MASK1;
 std::vector<std::string> CAM_NAMES;
 int MAX_CNT;
 int MIN_DIST;
@@ -128,6 +131,26 @@ void readLtvConfig(const cv::FileStorage &settings)
 }
 
 } // namespace
+
+cv::Mat loadFeatureMask(const std::string &path, int width, int height,
+                        const std::string &parameter_name)
+{
+    const cv::Mat loaded = cv::imread(path, cv::IMREAD_UNCHANGED);
+    if (loaded.empty())
+        throw std::runtime_error(parameter_name + " could not be read: " + path);
+    if (loaded.type() != CV_8UC1)
+        throw std::runtime_error(parameter_name + " must be an 8-bit, single-channel image: " + path);
+    if (loaded.cols != width || loaded.rows != height)
+    {
+        throw std::runtime_error(
+            parameter_name + " has size " + std::to_string(loaded.cols) + "x" +
+            std::to_string(loaded.rows) + ", expected " + std::to_string(width) + "x" +
+            std::to_string(height) + ": " + path);
+    }
+    cv::Mat binary;
+    cv::compare(loaded, 0, binary, cv::CMP_GT);
+    return binary;
+}
 
 template <typename T>
 T readParam(rclcpp::Node::SharedPtr n, std::string name)
@@ -279,6 +302,27 @@ void readParameters(std::string config_file)
     ROW = fsSettings["image_height"];
     COL = fsSettings["image_width"];
     ROS_INFO("ROW: %d COL: %d ", ROW, COL);
+
+    USE_MASK = 0;
+    MASK0.release();
+    MASK1.release();
+    readOptional(fsSettings, "use_mask", USE_MASK);
+    if (USE_MASK)
+    {
+        std::string mask0Name;
+        std::string mask1Name;
+        fsSettings["mask0"] >> mask0Name;
+        fsSettings["mask1"] >> mask1Name;
+        if (mask0Name.empty() || (NUM_OF_CAM == 2 && mask1Name.empty()))
+            throw std::runtime_error("use_mask requires mask0 and mask1 for stereo input");
+        const auto resolvePath = [&configPath](const std::string &path) {
+            return !path.empty() && path.front() == '/' ? path : configPath + "/" + path;
+        };
+        MASK0 = loadFeatureMask(resolvePath(mask0Name), COL, ROW, "mask0");
+        if (NUM_OF_CAM == 2)
+            MASK1 = loadFeatureMask(resolvePath(mask1Name), COL, ROW, "mask1");
+        ROS_INFO("Loaded feature masks for %d camera(s)", NUM_OF_CAM);
+    }
 
     if(!USE_IMU)
     {

@@ -117,6 +117,11 @@ if(BUILD_TESTING)
   if(TARGET test_stereo_synchronizer)
     target_include_directories(test_stereo_synchronizer PRIVATE src)
   endif()
+  ament_add_gtest(test_feature_masks test/test_feature_masks.cpp)
+  if(TARGET test_feature_masks)
+    target_include_directories(test_feature_masks PRIVATE src)
+    target_link_libraries(test_feature_masks vins_lib ${OpenCV_LIBS})
+  endif()
   ament_add_gtest(test_ltv_snapshot test/test_ltv_snapshot.cpp)
   if(TARGET test_ltv_snapshot)
     target_include_directories(test_ltv_snapshot PRIVATE src)
@@ -138,6 +143,10 @@ if(BUILD_TESTING)
   endif()
   add_test(NAME test_evaluate_vins_euroc
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_evaluate_vins_euroc.py)
+  add_test(NAME test_uzhfpv_config
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_uzhfpv_config.py)
+  add_test(NAME test_audit_uzhfpv_time_offsets
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_audit_uzhfpv_time_offsets.py)
   add_test(NAME test_analyze_euroc_asl_velocity
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_analyze_euroc_asl_velocity.py)
   add_test(NAME test_verify_snapshot_timestamps

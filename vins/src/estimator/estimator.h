@@ -10,6 +10,7 @@
 #pragma once
  
 #include <thread>
+#include <atomic>
 #include <mutex>
 #include <std_msgs/msg/header.h>
 #include <std_msgs/msg/float32.h>
@@ -68,6 +69,7 @@ class Estimator
     // single-threaded mode, an empty feature queue is a deterministic drain
     // condition rather than a wall-clock heuristic.
     bool finishInputAndDrain();
+    void stopProcessing();
     void changeSensorType(int use_imu, int use_stereo);
 
     // internal
@@ -126,6 +128,7 @@ class Estimator
 
     std::thread trackThread;
     std::thread processThread;
+    std::atomic<bool> stopThreads{false};
 
     FeatureTracker featureTracker;
 

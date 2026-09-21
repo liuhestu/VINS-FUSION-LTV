@@ -1,0 +1,880 @@
+{
+  "families": {
+    "indoor_45": {
+      "applied_gt_time_offset_s": 0.0,
+      "residual_mad_s": 0.004050000000000004,
+      "residual_median_s": 0.0009488882665628865,
+      "status": "direct"
+    },
+    "indoor_forward": {
+      "applied_gt_time_offset_s": 0.0,
+      "residual_mad_s": 0.0024000000000000037,
+      "residual_median_s": 0.0037845720918623796,
+      "status": "direct"
+    },
+    "outdoor_45": {
+      "applied_gt_time_offset_s": 0.0,
+      "residual_mad_s": 0.0,
+      "residual_median_s": 0.004037511810764217,
+      "status": "direct"
+    },
+    "outdoor_forward": {
+      "applied_gt_time_offset_s": 0.0,
+      "residual_mad_s": 0.0018999999999999937,
+      "residual_median_s": 0.00669924320505534,
+      "status": "direct"
+    }
+  },
+  "offset_definition": "raw maximizes corr(omega_gt(t), omega_imu(t+raw)); residual=raw-timeshift_cam_imu; t_gt_eval=t_gt+applied",
+  "schema": "uzhfpv-gt-time-offset-audit-v1",
+  "sequences": [
+    {
+      "applied_gt_time_offset_s": 0.0,
+      "bag_metadata_sha256": "6eb6cba4f999c65d3d7c608ccc263e3903085cf597fb12d4ab2508237d0b7b10",
+      "bag_path": "/home/he/datasets/uzhfpv/uzhfpv_indoor/indoor_forward_3_snapdragon_with_gt_db",
+      "bag_time_range_s": [
+        4878.790299,
+        4970.894298
+      ],
+      "baseline_common_position_duration_s": 49.46158788699995,
+      "baseline_common_position_interval_s": [
+        4908.791704125,
+        4958.253292012
+      ],
+      "baseline_common_position_samples": 1333,
+      "baseline_maximum_timestamp_error_s": 0.0009998320001614047,
+      "baseline_vio_path": "/home/he/output/ltv_uzhfpv_notune/indoor_forward_3_snapdragon_with_gt/baseline/vio.csv",
+      "baseline_vio_sha256": "9c1429741e5619815e046fd9f2a05033ebdaf0ce526d8498b80461a76456c490",
+      "calibration_td_s": -0.016684572091862235,
+      "category": "uzhfpv_indoor",
+      "corrected_gt_time_range_s": [
+        4908.791704125,
+        4958.289704125
+      ],
+      "family": "indoor_forward",
+      "gt_path": "/home/he/datasets/uzhfpv/archives/indoor_forward_3_snapdragon_with_gt/groundtruth.txt",
+      "gt_sha256": "671b8b04ea577feb075f01cc671e08ccdd354758d99082d2f3787c70f5bc2b51",
+      "gt_time_range_s": [
+        4908.791704125,
+        4958.289704125
+      ],
+      "imu_sha256": "adebe289e1c0c1c7bcc9c6e20e285bf366750e1976ed211bd9f4e9d1580e37ab",
+      "imu_time_range_s": [
+        4878.790299,
+        4970.894298
+      ],
+      "offset_confident": true,
+      "offset_cross_check_difference_s": 1.3877787807814457e-17,
+      "raw_leica_audit": {
+        "end_time_utc_s": 1540823924.488,
+        "path": "/home/he/datasets/uzhfpv/groundtruth_official/indoor_forward_3/leica.txt",
+        "positions_finite": true,
+        "samples": 1662,
+        "sha256": "e754a41ca0f89736d0e8c06bf9110c6360363f3293f8c1bb9b1677964051b5e3",
+        "start_time_utc_s": 1540823831.711
+      },
+      "raw_offset_correlation": 0.9899041589726457,
+      "raw_offset_s": -0.014399999999999857,
+      "residual_offset_s": 0.0022845720918623774,
+      "sequence": "indoor_forward_3_snapdragon_with_gt",
+      "x_axis_correlation": 0.9947627518532224,
+      "x_axis_offset_s": -0.014399999999999871
+    },
+    {
+      "applied_gt_time_offset_s": 0.0,
+      "bag_metadata_sha256": "5b57db0541c2a5e11da1d5e12a43df5d0dc702d904b88aebebf50e434e425f09",
+      "bag_path": "/home/he/datasets/uzhfpv/uzhfpv_indoor/indoor_forward_5_snapdragon_with_gt_db",
+      "bag_time_range_s": [
+        1540821095.597876,
+        1540821245.6798751
+      ],
+      "baseline_common_position_duration_s": 19.307058811187744,
+      "baseline_common_position_interval_s": [
+        1540821125.8159893,
+        1540821145.123048
+      ],
+      "baseline_common_position_samples": 530,
+      "baseline_maximum_timestamp_error_s": 0.009057998657226562,
+      "baseline_vio_path": "/home/he/output/ltv_uzhfpv_notune/indoor_forward_5_snapdragon_with_gt/baseline/vio.csv",
+      "baseline_vio_sha256": "c1bd599d7ab50c2d3752fd05a5a79d3cbcf3f44ed6c933ef47dad0423b84a698",
+      "calibration_td_s": -0.016684572091862235,
+      "category": "uzhfpv_indoor",
+      "corrected_gt_time_range_s": [
+        1540821125.81599,
+        1540821145.11399
+      ],
+      "family": "indoor_forward",
+      "gt_path": "/home/he/datasets/uzhfpv/archives/indoor_forward_5_snapdragon_with_gt/groundtruth.txt",
+      "gt_sha256": "4a54cd2addaea79c34f7b0582a8cd8544b3c7bf5d91e6dce2594768aee9fb018",
+      "gt_time_range_s": [
+        1540821125.81599,
+        1540821145.11399
+      ],
+      "imu_sha256": "d012e25f0f0449c22521ff19942449d2301311407d6ab28fce93d247ac3a2f34",
+      "imu_time_range_s": [
+        1540821095.597876,
+        1540821245.6798751
+      ],
+      "offset_confident": true,
+      "offset_cross_check_difference_s": 0.0,
+      "raw_leica_audit": {
+        "end_time_utc_s": 1540824852.769,
+        "path": "/home/he/datasets/uzhfpv/groundtruth_official/indoor_forward_5/leica.txt",
+        "positions_finite": true,
+        "samples": 3124,
+        "sha256": "1ba3080c475073cc9a1e498a48d9a553d7c084dc9b44b4f659db3867d1cb1d16",
+        "start_time_utc_s": 1540824687.402
+      },
+      "raw_offset_correlation": 0.9834036138082429,
+      "raw_offset_s": -0.011099999999999855,
+      "residual_offset_s": 0.00558457209186238,
+      "sequence": "indoor_forward_5_snapdragon_with_gt",
+      "x_axis_correlation": 0.9615468318495694,
+      "x_axis_offset_s": -0.011099999999999855
+    },
+    {
+      "applied_gt_time_offset_s": 0.0,
+      "bag_metadata_sha256": "6db5987e2ddeffa60fd688b78c6e734e7bf8061dac4903e66f13e634465bdeaa",
+      "bag_path": "/home/he/datasets/uzhfpv/uzhfpv_indoor/indoor_forward_6_snapdragon_with_gt_db",
+      "bag_time_range_s": [
+        1540821358.1958773,
+        1540821427.8238761
+      ],
+      "baseline_common_position_duration_s": 30.187592029571533,
+      "baseline_common_position_interval_s": [
+        1540821387.4829755,
+        1540821417.6705675
+      ],
+      "baseline_common_position_samples": 817,
+      "baseline_maximum_timestamp_error_s": 0.0009987354278564453,
+      "baseline_vio_path": "/home/he/output/ltv_uzhfpv_notune/indoor_forward_6_snapdragon_with_gt/baseline/vio.csv",
+      "baseline_vio_sha256": "9e1de26e5beab9d688359f64406136378dfd84b9acb8e33cb0a080158e053d74",
+      "calibration_td_s": -0.016684572091862235,
+      "category": "uzhfpv_indoor",
+      "corrected_gt_time_range_s": [
+        1540821387.48298,
+        1540821417.68098
+      ],
+      "family": "indoor_forward",
+      "gt_path": "/home/he/datasets/uzhfpv/archives/indoor_forward_6_snapdragon_with_gt/groundtruth.txt",
+      "gt_sha256": "0d417f83866b335f5e3f9cf1a37f007d82e1f2362ba6c0fe44cc8e3a03dddd7c",
+      "gt_time_range_s": [
+        1540821387.48298,
+        1540821417.68098
+      ],
+      "imu_sha256": "b05df93808b97064534dff4cca27c39a549662d2066242a48350870f8825a8e4",
+      "imu_time_range_s": [
+        1540821358.1958773,
+        1540821427.8238761
+      ],
+      "offset_confident": true,
+      "offset_cross_check_difference_s": 0.0019000000000000024,
+      "raw_leica_audit": {
+        "end_time_utc_s": 1540825035.125,
+        "path": "/home/he/datasets/uzhfpv/groundtruth_official/indoor_forward_6/leica.txt",
+        "positions_finite": true,
+        "samples": 1645,
+        "sha256": "73b002ee28b99349d2ea35b7fa806e79c63387a1c10e272706159db379d7c139",
+        "start_time_utc_s": 1540824948.552
+      },
+      "raw_offset_correlation": 0.985579509456325,
+      "raw_offset_s": -0.01619999999999986,
+      "residual_offset_s": 0.00048457209186237443,
+      "sequence": "indoor_forward_6_snapdragon_with_gt",
+      "x_axis_correlation": 0.9920994900908833,
+      "x_axis_offset_s": -0.018099999999999863
+    },
+    {
+      "applied_gt_time_offset_s": 0.0,
+      "bag_metadata_sha256": "a7d9d0bc1ebcef3be55972d07f4316d224fcfad7dac87a460f0a681a6104d2d3",
+      "bag_path": "/home/he/datasets/uzhfpv/uzhfpv_indoor/indoor_forward_7_snapdragon_with_gt_db",
+      "bag_time_range_s": [
+        1540821814.3860052,
+        1540821932.4700031
+      ],
+      "baseline_common_position_duration_s": 66.71258878707886,
+      "baseline_common_position_interval_s": [
+        1540821844.730949,
+        1540821911.4435377
+      ],
+      "baseline_common_position_samples": 1736,
+      "baseline_maximum_timestamp_error_s": 0.014587640762329102,
+      "baseline_vio_path": "/home/he/output/ltv_uzhfpv_notune/indoor_forward_7_snapdragon_with_gt/baseline/vio.csv",
+      "baseline_vio_sha256": "cf7de4c9b1dee772916bdf62d1f3beb842a63a49cc5d3cb2a5755b5b8ee8e4ac",
+      "calibration_td_s": -0.016684572091862235,
+      "category": "uzhfpv_indoor",
+      "corrected_gt_time_range_s": [
+        1540821844.73095,
+        1540821911.42895
+      ],
+      "family": "indoor_forward",
+      "gt_path": "/home/he/datasets/uzhfpv/archives/indoor_forward_7_snapdragon_with_gt/groundtruth.txt",
+      "gt_sha256": "1f63e693e44ff3842949de69243ad298a7a9acea6fff4b8c2d36f1a66ef8fd59",
+      "gt_time_range_s": [
+        1540821844.73095,
+        1540821911.42895
+      ],
+      "imu_sha256": "9c200d38729affc06f8bce3df9d1730882e3920928083e6b76a8be6fe0eea8d8",
+      "imu_time_range_s": [
+        1540821814.3860052,
+        1540821932.4700031
+      ],
+      "offset_confident": true,
+      "offset_cross_check_difference_s": 9.99999999999994e-05,
+      "raw_leica_audit": {
+        "end_time_utc_s": 1540825528.934,
+        "path": "/home/he/datasets/uzhfpv/groundtruth_official/indoor_forward_7/leica.txt",
+        "positions_finite": true,
+        "samples": 2319,
+        "sha256": "5de7d7ee4316f9bbf920d360dc2f949bb3cb180349582825ad5050cb7a98d71d",
+        "start_time_utc_s": 1540825405.546
+      },
+      "raw_offset_correlation": 0.9946331925508296,
+      "raw_offset_s": -0.015899999999999862,
+      "residual_offset_s": 0.0007845720918623726,
+      "sequence": "indoor_forward_7_snapdragon_with_gt",
+      "x_axis_correlation": 0.997029257748251,
+      "x_axis_offset_s": -0.01599999999999986
+    },
+    {
+      "applied_gt_time_offset_s": 0.0,
+      "bag_metadata_sha256": "01e6166615d65f4176070780e68e20af34e91fa484d5a717f86d66ad6334071a",
+      "bag_path": "/home/he/datasets/uzhfpv/uzhfpv_indoor/indoor_forward_9_snapdragon_with_gt_db",
+      "bag_time_range_s": [
+        1540822816.2923253,
+        1540822893.126322
+      ],
+      "baseline_common_position_duration_s": 28.795078992843628,
+      "baseline_common_position_interval_s": [
+        1540822844.482798,
+        1540822873.277877
+      ],
+      "baseline_common_position_samples": 767,
+      "baseline_maximum_timestamp_error_s": 0.0009982585906982422,
+      "baseline_vio_path": "/home/he/output/ltv_uzhfpv_notune/indoor_forward_9_snapdragon_with_gt/baseline/vio.csv",
+      "baseline_vio_sha256": "9fba756a8bef827b747bb7a72589d20fdcfe12de44536c58ef60ab1693a46818",
+      "calibration_td_s": -0.016684572091862235,
+      "category": "uzhfpv_indoor",
+      "corrected_gt_time_range_s": [
+        1540822844.4828,
+        1540822873.2808
+      ],
+      "family": "indoor_forward",
+      "gt_path": "/home/he/datasets/uzhfpv/archives/indoor_forward_9_snapdragon_with_gt/groundtruth.txt",
+      "gt_sha256": "059e625cca5847af03fcf4b97d8c6c454c3a1359a3169f1fe5ac114959dfeef0",
+      "gt_time_range_s": [
+        1540822844.4828,
+        1540822873.2808
+      ],
+      "imu_sha256": "1faa845b195b253436b8ab67bc026d71ddc1713f236eff5b7d437d1e10d9e8e2",
+      "imu_time_range_s": [
+        1540822816.2923253,
+        1540822893.126322
+      ],
+      "offset_confident": true,
+      "offset_cross_check_difference_s": 0.004000000000000005,
+      "raw_leica_audit": {
+        "end_time_utc_s": 1540826488.741,
+        "path": "/home/he/datasets/uzhfpv/groundtruth_official/indoor_forward_9/leica.txt",
+        "positions_finite": true,
+        "samples": 1672,
+        "sha256": "0c7147eccdd3ad48383290a5593708732afc270136c2a5cb60d2692d6fa1b3ed",
+        "start_time_utc_s": 1540826400.938
+      },
+      "raw_offset_correlation": 0.984777427455268,
+      "raw_offset_s": -0.011399999999999853,
+      "residual_offset_s": 0.005284572091862382,
+      "sequence": "indoor_forward_9_snapdragon_with_gt",
+      "x_axis_correlation": 0.988267460425881,
+      "x_axis_offset_s": -0.015399999999999858
+    },
+    {
+      "applied_gt_time_offset_s": 0.0,
+      "bag_metadata_sha256": "dedf698ec41156a461372e96e31a0d92e2aed47571cf49bdcb36b478a5a896d5",
+      "bag_path": "/home/he/datasets/uzhfpv/uzhfpv_indoor/indoor_forward_10_snapdragon_with_gt_db",
+      "bag_time_range_s": [
+        1540823051.509456,
+        1540823127.793948
+      ],
+      "baseline_common_position_duration_s": 29.856040000915527,
+      "baseline_common_position_interval_s": [
+        1540823082.1948159,
+        1540823112.0508559
+      ],
+      "baseline_common_position_samples": 820,
+      "baseline_maximum_timestamp_error_s": 0.00099945068359375,
+      "baseline_vio_path": "/home/he/output/ltv_uzhfpv_notune/indoor_forward_10_snapdragon_with_gt/baseline/vio.csv",
+      "baseline_vio_sha256": "8eca99ae136749ae67e864b99be6a0b09f5150b2f7f554e8cdd649fc7badfc88",
+      "calibration_td_s": -0.016684572091862235,
+      "category": "uzhfpv_indoor",
+      "corrected_gt_time_range_s": [
+        1540823082.19482,
+        1540823112.09282
+      ],
+      "family": "indoor_forward",
+      "gt_path": "/home/he/datasets/uzhfpv/archives/indoor_forward_10_snapdragon_with_gt/groundtruth.txt",
+      "gt_sha256": "b1410794ac4449f3901af9916bf10ab3f6f3350ab54299f039846d69f3603f6f",
+      "gt_time_range_s": [
+        1540823082.19482,
+        1540823112.09282
+      ],
+      "imu_sha256": "2161fcb879ac38dff5fc02dcb36a72601e2930f4b43dfba17d9ff668a1659008",
+      "imu_time_range_s": [
+        1540823051.521953,
+        1540823127.793948
+      ],
+      "offset_confident": true,
+      "offset_cross_check_difference_s": 0.0020000000000000018,
+      "raw_leica_audit": {
+        "end_time_utc_s": 1540826735.791,
+        "path": "/home/he/datasets/uzhfpv/groundtruth_official/indoor_forward_10/leica.txt",
+        "positions_finite": true,
+        "samples": 2167,
+        "sha256": "26f480fd337eb6982826cae8bdc95d20df8d8e8b99d611df27bddc4cbdfbd7e3",
+        "start_time_utc_s": 1540826646.375
+      },
+      "raw_offset_correlation": 0.9826455533012074,
+      "raw_offset_s": -0.007899999999999853,
+      "residual_offset_s": 0.008784572091862381,
+      "sequence": "indoor_forward_10_snapdragon_with_gt",
+      "x_axis_correlation": 0.9897689149511,
+      "x_axis_offset_s": -0.009899999999999855
+    },
+    {
+      "applied_gt_time_offset_s": 0.0,
+      "bag_metadata_sha256": "5275207630eb6bbdbdd9e5ea902f376920ed9d3e6a23f365b041161f2331ac8f",
+      "bag_path": "/home/he/datasets/uzhfpv/uzhfpv_indoor_45/indoor_45_2_snapdragon_with_gt_db",
+      "bag_time_range_s": [
+        1398.5015420000002,
+        1473.1775440000001
+      ],
+      "baseline_common_position_duration_s": 49.3958877980001,
+      "baseline_common_position_interval_s": [
+        1416.606163685,
+        1466.002051483
+      ],
+      "baseline_common_position_samples": 1265,
+      "baseline_maximum_timestamp_error_s": 0.0009973609999178734,
+      "baseline_vio_path": "/home/he/output/ltv_uzhfpv_notune/indoor_45_2_snapdragon_with_gt/baseline/vio.csv",
+      "baseline_vio_sha256": "adb944085d55f6ab8ce72534d9238eb2334c2d7ae768a5815edb234abd518a76",
+      "calibration_td_s": -0.01484888826656275,
+      "category": "uzhfpv_indoor_45",
+      "corrected_gt_time_range_s": [
+        1416.606163685,
+        1466.004163685
+      ],
+      "family": "indoor_45",
+      "gt_path": "/home/he/datasets/uzhfpv/archives/indoor_45_2_snapdragon_with_gt/groundtruth.txt",
+      "gt_sha256": "ecab8a2a6de523164bdfcd56a2518d393334125256929b64a714fb6a35eaa97e",
+      "gt_time_range_s": [
+        1416.606163685,
+        1466.004163685
+      ],
+      "imu_sha256": "3c7d517977c02366efa717cdd7db5d87ab7d1e013bb906c51c0d9f79eefba4ea",
+      "imu_time_range_s": [
+        1398.5015420000002,
+        1473.1775440000001
+      ],
+      "offset_confident": true,
+      "offset_cross_check_difference_s": 0.0020000000000000018,
+      "raw_leica_audit": {
+        "end_time_utc_s": 1545309388.168,
+        "path": "/home/he/datasets/uzhfpv/groundtruth_official/indoor_45_2/leica.txt",
+        "positions_finite": true,
+        "samples": 1862,
+        "sha256": "8b432bfceb00816b37032ee6b39e43e6f9d8f2e1b743e3746689db189aa345c6",
+        "start_time_utc_s": 1545309288.999
+      },
+      "raw_offset_correlation": 0.9850629483113028,
+      "raw_offset_s": -0.019599999999999854,
+      "residual_offset_s": -0.004751111733437103,
+      "sequence": "indoor_45_2_snapdragon_with_gt",
+      "x_axis_correlation": 0.9884061204007971,
+      "x_axis_offset_s": -0.017599999999999852
+    },
+    {
+      "applied_gt_time_offset_s": 0.0,
+      "bag_metadata_sha256": "afedd8f8600864b54613532ed531e9f0776b768d464daa5ef46496f91cebc0e8",
+      "bag_path": "/home/he/datasets/uzhfpv/uzhfpv_indoor_45/indoor_45_4_snapdragon_with_gt_db",
+      "bag_time_range_s": [
+        1790.1555360000002,
+        1856.381538
+      ],
+      "baseline_common_position_duration_s": 43.192455034999966,
+      "baseline_common_position_interval_s": [
+        1808.488501256,
+        1851.680956291
+      ],
+      "baseline_common_position_samples": 1154,
+      "baseline_maximum_timestamp_error_s": 0.0009995309999339952,
+      "baseline_vio_path": "/home/he/output/ltv_uzhfpv_notune/indoor_45_4_snapdragon_with_gt/baseline/vio.csv",
+      "baseline_vio_sha256": "c2b89110f0bb827f1fd94f7c055814fa79a8b5c71a2b46484d1d46c5ec8d9d0b",
+      "calibration_td_s": -0.01484888826656275,
+      "category": "uzhfpv_indoor_45",
+      "corrected_gt_time_range_s": [
+        1808.488501256,
+        1851.686501256
+      ],
+      "family": "indoor_45",
+      "gt_path": "/home/he/datasets/uzhfpv/archives/indoor_45_4_snapdragon_with_gt/groundtruth.txt",
+      "gt_sha256": "5776f92836e687866254f52fdb2b5b6d4cede4e86e2190b035d578cc1935b400",
+      "gt_time_range_s": [
+        1808.488501256,
+        1851.686501256
+      ],
+      "imu_sha256": "732c0bf87b4b337db023c34c41e4a500caf5a0b345dbe5f6920c31644afa486e",
+      "imu_time_range_s": [
+        1790.1555360000002,
+        1856.381538
+      ],
+      "offset_confident": true,
+      "offset_cross_check_difference_s": 0.0,
+      "raw_leica_audit": {
+        "end_time_utc_s": 1545309772.382,
+        "path": "/home/he/datasets/uzhfpv/groundtruth_official/indoor_45_4/leica.txt",
+        "positions_finite": true,
+        "samples": 1591,
+        "sha256": "043e6615307b3f3eb83035894193f6dc837f611114957a6fb1c3cbf3fcd5cf34",
+        "start_time_utc_s": 1545309686.16
+      },
+      "raw_offset_correlation": 0.9815147130689363,
+      "raw_offset_s": -0.007899999999999853,
+      "residual_offset_s": 0.006948888266562897,
+      "sequence": "indoor_45_4_snapdragon_with_gt",
+      "x_axis_correlation": 0.9813917160216848,
+      "x_axis_offset_s": -0.007899999999999853
+    },
+    {
+      "applied_gt_time_offset_s": 0.0,
+      "bag_metadata_sha256": "c0393a65164b0305705f998c1e106e58515e20d01493994b84dbe178c73de0d1",
+      "bag_path": "/home/he/datasets/uzhfpv/uzhfpv_indoor_45/indoor_45_9_snapdragon_with_gt_db",
+      "bag_time_range_s": [
+        2005.393583,
+        2077.1755730120003
+      ],
+      "baseline_common_position_duration_s": 21.397670373999972,
+      "baseline_common_position_interval_s": [
+        2023.466931952,
+        2044.864602326
+      ],
+      "baseline_common_position_samples": 579,
+      "baseline_maximum_timestamp_error_s": 0.0009995770001296478,
+      "baseline_vio_path": "/home/he/output/ltv_uzhfpv_notune/indoor_45_9_snapdragon_with_gt/baseline/vio.csv",
+      "baseline_vio_sha256": "75762714eae85ea240a0afd471b0f924c7961f02de1d8e7bf7db9ff95cca68f4",
+      "calibration_td_s": -0.01484888826656275,
+      "category": "uzhfpv_indoor_45",
+      "corrected_gt_time_range_s": [
+        2023.466931952,
+        2044.864931952
+      ],
+      "family": "indoor_45",
+      "gt_path": "/home/he/datasets/uzhfpv/archives/indoor_45_9_snapdragon_with_gt/groundtruth.txt",
+      "gt_sha256": "c807eeb9784c4c5e919a99f08458db5446c34a6570d4243a06b6751f5d740d0d",
+      "gt_time_range_s": [
+        2023.466931952,
+        2044.864931952
+      ],
+      "imu_sha256": "723578e6c00b9b7058fd8f4e1bd24605aef144c59f945fd15d36e07b43bada71",
+      "imu_time_range_s": [
+        2005.393583,
+        2077.153585
+      ],
+      "offset_confident": true,
+      "offset_cross_check_difference_s": 0.001999999999999988,
+      "raw_leica_audit": {
+        "end_time_utc_s": 1545311918.491,
+        "path": "/home/he/datasets/uzhfpv/groundtruth_official/indoor_45_9/leica.txt",
+        "positions_finite": true,
+        "samples": 1368,
+        "sha256": "3971c026ae5e348241c7584d8ab578d49a1f9e395b48c26c44743ffda7acc970",
+        "start_time_utc_s": 1545311841.193
+      },
+      "raw_offset_correlation": 0.9875691978557273,
+      "raw_offset_s": -0.01239999999999987,
+      "residual_offset_s": 0.002448888266562881,
+      "sequence": "indoor_45_9_snapdragon_with_gt",
+      "x_axis_correlation": 0.9945545500171107,
+      "x_axis_offset_s": -0.014399999999999857
+    },
+    {
+      "applied_gt_time_offset_s": 0.0,
+      "bag_metadata_sha256": "021144f743d65e367c1189b62ee117ece581cbdc52fa3d9204b2dccda4303b19",
+      "bag_path": "/home/he/datasets/uzhfpv/uzhfpv_indoor_45/indoor_45_12_snapdragon_with_gt_db",
+      "bag_time_range_s": [
+        601.4763,
+        674.006299
+      ],
+      "baseline_common_position_duration_s": 40.30540531999998,
+      "baseline_common_position_interval_s": [
+        622.687321576,
+        662.992726896
+      ],
+      "baseline_common_position_samples": 1077,
+      "baseline_maximum_timestamp_error_s": 0.0074053199999752906,
+      "baseline_vio_path": "/home/he/output/ltv_uzhfpv_notune/indoor_45_12_snapdragon_with_gt/baseline/vio.csv",
+      "baseline_vio_sha256": "4683be7aa3ea920480dd40264e1a6ba88f6b8ceea85b9185d5bdd3afb0090f1d",
+      "calibration_td_s": -0.01484888826656275,
+      "category": "uzhfpv_indoor_45",
+      "corrected_gt_time_range_s": [
+        622.687321576,
+        662.985321576
+      ],
+      "family": "indoor_45",
+      "gt_path": "/home/he/datasets/uzhfpv/archives/indoor_45_12_snapdragon_with_gt/groundtruth.txt",
+      "gt_sha256": "12320a2ce7bbf3537d82243ed964b0bf89dd51ca61641b6ad0bf6f71b1a0fa8f",
+      "gt_time_range_s": [
+        622.687321576,
+        662.985321576
+      ],
+      "imu_sha256": "98dea44c6e14141700e201f2bd28f26d34af7b5900e324459cff4c36e4e440f3",
+      "imu_time_range_s": [
+        601.4763,
+        674.006299
+      ],
+      "offset_confident": true,
+      "offset_cross_check_difference_s": 0.0,
+      "raw_leica_audit": {
+        "end_time_utc_s": 1545317158.361,
+        "path": "/home/he/datasets/uzhfpv/groundtruth_official/indoor_45_12/leica.txt",
+        "positions_finite": true,
+        "samples": 1591,
+        "sha256": "7bea4fbdd4f68845f1c085cffa8dcb97678d7d2e66766f101a1c4e122601e87b",
+        "start_time_utc_s": 1545317073.809
+      },
+      "raw_offset_correlation": 0.9698047310794228,
+      "raw_offset_s": -0.009999999999999854,
+      "residual_offset_s": 0.004848888266562896,
+      "sequence": "indoor_45_12_snapdragon_with_gt",
+      "x_axis_correlation": 0.9505512102835056,
+      "x_axis_offset_s": -0.009999999999999854
+    },
+    {
+      "applied_gt_time_offset_s": 0.0,
+      "bag_metadata_sha256": "83876d0de8365225324c4435f5e430702a8ea0a96ead26335efb1f84f0de2b8d",
+      "bag_path": "/home/he/datasets/uzhfpv/uzhfpv_indoor_45/indoor_45_13_snapdragon_with_gt_db",
+      "bag_time_range_s": [
+        800.3243070000001,
+        862.260306
+      ],
+      "baseline_common_position_duration_s": 37.38675893599998,
+      "baseline_common_position_interval_s": [
+        819.407389107,
+        856.794148043
+      ],
+      "baseline_common_position_samples": 1037,
+      "baseline_maximum_timestamp_error_s": 0.0009999390000530184,
+      "baseline_vio_path": "/home/he/output/ltv_uzhfpv_notune/indoor_45_13_snapdragon_with_gt/baseline/vio.csv",
+      "baseline_vio_sha256": "402f496ce7451e72ba3ef49c5ee568ff5d415a3c823751dced299013dab1c5df",
+      "calibration_td_s": -0.01484888826656275,
+      "category": "uzhfpv_indoor_45",
+      "corrected_gt_time_range_s": [
+        819.407389107,
+        856.805389107
+      ],
+      "family": "indoor_45",
+      "gt_path": "/home/he/datasets/uzhfpv/archives/indoor_45_13_snapdragon_with_gt/groundtruth.txt",
+      "gt_sha256": "a04727dfe4d229cdb1d0f7a701270514019b2300423ed15c13afe60b4dbf8d29",
+      "gt_time_range_s": [
+        819.407389107,
+        856.805389107
+      ],
+      "imu_sha256": "ffc0291833285285fd3f3910af5f97a280b2bb1fa07ce8556817cc41b3f4248f",
+      "imu_time_range_s": [
+        800.3243070000001,
+        862.260306
+      ],
+      "offset_confident": true,
+      "offset_cross_check_difference_s": 0.004100000000000003,
+      "raw_leica_audit": {
+        "end_time_utc_s": 1545317345.873,
+        "path": "/home/he/datasets/uzhfpv/groundtruth_official/indoor_45_13/leica.txt",
+        "positions_finite": true,
+        "samples": 1368,
+        "sha256": "c5b7ad2fc1db6cd83753e5ecf9e80b9a729aa3c60cd5a54dd3c5a8ce62e5dc81",
+        "start_time_utc_s": 1545317274.019
+      },
+      "raw_offset_correlation": 0.9815455103026809,
+      "raw_offset_s": -0.018099999999999863,
+      "residual_offset_s": -0.0032511117334371124,
+      "sequence": "indoor_45_13_snapdragon_with_gt",
+      "x_axis_correlation": 0.9825227507521838,
+      "x_axis_offset_s": -0.01399999999999986
+    },
+    {
+      "applied_gt_time_offset_s": 0.0,
+      "bag_metadata_sha256": "9103eb3e278aceecdc4c238d6c4d952e04649b5127f18400bf9e6f9ad4fcc020",
+      "bag_path": "/home/he/datasets/uzhfpv/uzhfpv_indoor_45/indoor_45_14_snapdragon_with_gt_db",
+      "bag_time_range_s": [
+        929.5462980000001,
+        994.0823
+      ],
+      "baseline_common_position_duration_s": 36.988654123999936,
+      "baseline_common_position_interval_s": [
+        948.562713409,
+        985.551367533
+      ],
+      "baseline_common_position_samples": 1026,
+      "baseline_maximum_timestamp_error_s": 0.0009999200000265773,
+      "baseline_vio_path": "/home/he/output/ltv_uzhfpv_notune/indoor_45_14_snapdragon_with_gt/baseline/vio.csv",
+      "baseline_vio_sha256": "58f2beb8b153ea383af7f004425cadefbaffce694288a96827d7b467e47e17f3",
+      "calibration_td_s": -0.01484888826656275,
+      "category": "uzhfpv_indoor_45",
+      "corrected_gt_time_range_s": [
+        948.562713409,
+        985.560713409
+      ],
+      "family": "indoor_45",
+      "gt_path": "/home/he/datasets/uzhfpv/archives/indoor_45_14_snapdragon_with_gt/groundtruth.txt",
+      "gt_sha256": "5b2b2e3b6aec5214e09ba12a506393904fb01217706bfa9677e35e8e991e2db2",
+      "gt_time_range_s": [
+        948.562713409,
+        985.560713409
+      ],
+      "imu_sha256": "137c2f57a0321a274ece8e206c7498fe0dcbd131830f82f0afed18fac309279b",
+      "imu_time_range_s": [
+        929.5462980000001,
+        994.0823
+      ],
+      "offset_confident": true,
+      "offset_cross_check_difference_s": 0.006000000000000005,
+      "raw_leica_audit": {
+        "end_time_utc_s": 1545317475.572,
+        "path": "/home/he/datasets/uzhfpv/groundtruth_official/indoor_45_14/leica.txt",
+        "positions_finite": true,
+        "samples": 1331,
+        "sha256": "e519e7b1475e205e8ce13271e9a10402effe7b25065afb0a853ab454e1fb6228",
+        "start_time_utc_s": 1545317399.225
+      },
+      "raw_offset_correlation": 0.9877116932726543,
+      "raw_offset_s": -0.015399999999999858,
+      "residual_offset_s": -0.0005511117334371079,
+      "sequence": "indoor_45_14_snapdragon_with_gt",
+      "x_axis_correlation": 0.9910895859117914,
+      "x_axis_offset_s": -0.021399999999999864
+    },
+    {
+      "applied_gt_time_offset_s": 0.0,
+      "bag_metadata_sha256": "c14b0c7b5ab59319c388dd223826d818ccdaa9c58180d2f3fc30ce3f4f9d693b",
+      "bag_path": "/home/he/datasets/uzhfpv/uzhfpv_outdoor/outdoor_forward_1_snapdragon_with_gt_db",
+      "bag_time_range_s": [
+        523.07722,
+        608.853967867
+      ],
+      "baseline_common_position_duration_s": 42.59416751200001,
+      "baseline_common_position_interval_s": [
+        552.459880893,
+        595.054048405
+      ],
+      "baseline_common_position_samples": 1165,
+      "baseline_maximum_timestamp_error_s": 0.0009999119999974937,
+      "baseline_vio_path": "/home/he/output/ltv_uzhfpv_notune/outdoor_forward_1_snapdragon_with_gt/baseline/vio.csv",
+      "baseline_vio_sha256": "c358807896faa5fa015dfe25dd92b367a52104e7d111b599133a6ac341679e82",
+      "calibration_td_s": -0.007999243205055177,
+      "category": "uzhfpv_outdoor",
+      "corrected_gt_time_range_s": [
+        552.459880894,
+        595.057880894
+      ],
+      "family": "outdoor_forward",
+      "gt_path": "/home/he/datasets/uzhfpv/archives/outdoor_forward_1_snapdragon_with_gt/groundtruth.txt",
+      "gt_sha256": "67ecd68298d1463e730c131a1ca845981452a9b0ba7cea031f320e6c4c8dd08c",
+      "gt_time_range_s": [
+        552.459880894,
+        595.057880894
+      ],
+      "imu_sha256": "0b0f3fbee3c4ed88a02d2e2b444ca0c886c09834aab665f59addba0d8c7672a3",
+      "imu_time_range_s": [
+        523.07722,
+        608.831217
+      ],
+      "offset_confident": true,
+      "offset_cross_check_difference_s": 0.001999999999999988,
+      "raw_leica_audit": {
+        "end_time_utc_s": 1540120540.877,
+        "path": "/home/he/datasets/uzhfpv/groundtruth_official/outdoor_forward_1/leica.txt",
+        "positions_finite": true,
+        "samples": 6654,
+        "sha256": "a285f2a066a7608603e4ac15f950d9040b9b1cc88982bf55f9dd427e57c24a2c",
+        "start_time_utc_s": 1540120344.972
+      },
+      "raw_offset_correlation": 0.9643363340872846,
+      "raw_offset_s": 0.012300000000000163,
+      "residual_offset_s": 0.020299243205055342,
+      "sequence": "outdoor_forward_1_snapdragon_with_gt",
+      "x_axis_correlation": 0.9517143771047285,
+      "x_axis_offset_s": 0.010300000000000175
+    },
+    {
+      "applied_gt_time_offset_s": 0.0,
+      "bag_metadata_sha256": "b1c9dfb3114fe3241967dfc283e56fb374999a1389cb38a7e23ef8963638a973",
+      "bag_path": "/home/he/datasets/uzhfpv/uzhfpv_outdoor/outdoor_forward_3_snapdragon_with_gt_db",
+      "bag_time_range_s": [
+        1028.8132130000001,
+        1160.081208
+      ],
+      "baseline_common_position_duration_s": 85.68592189699984,
+      "baseline_common_position_interval_s": [
+        1061.09540248,
+        1146.781324377
+      ],
+      "baseline_common_position_samples": 2224,
+      "baseline_maximum_timestamp_error_s": 0.000999906000060946,
+      "baseline_vio_path": "/home/he/output/ltv_uzhfpv_notune/outdoor_forward_3_snapdragon_with_gt/baseline/vio.csv",
+      "baseline_vio_sha256": "acd84e7c3b755c7babefd03ca300f1842401eb2d07f065f9ea54a6838c576ca4",
+      "calibration_td_s": -0.007999243205055177,
+      "category": "uzhfpv_outdoor",
+      "corrected_gt_time_range_s": [
+        1061.09540248,
+        1146.79340248
+      ],
+      "family": "outdoor_forward",
+      "gt_path": "/home/he/datasets/uzhfpv/archives/outdoor_forward_3_snapdragon_with_gt/groundtruth.txt",
+      "gt_sha256": "0b2cb9a12ba5bd802b7ccf86d91693cd0b486faa3ac1c8aa9f54976baf4d2c50",
+      "gt_time_range_s": [
+        1061.09540248,
+        1146.79340248
+      ],
+      "imu_sha256": "be2d8e42982049feeb6bc52c370b4278b7234173011a6c6e4d8232726692ccfc",
+      "imu_time_range_s": [
+        1028.8132130000001,
+        1160.081208
+      ],
+      "offset_confident": true,
+      "offset_cross_check_difference_s": 0.0020000000000000018,
+      "raw_leica_audit": {
+        "end_time_utc_s": 1540121014.525,
+        "path": "/home/he/datasets/uzhfpv/groundtruth_official/outdoor_forward_3/leica.txt",
+        "positions_finite": true,
+        "samples": 3062,
+        "sha256": "4db3fe6ecd8ced8d13e67290ebda7cf43c7d5682d6d6fa8e56c7e0b866a213df",
+        "start_time_utc_s": 1540120868.806
+      },
+      "raw_offset_correlation": 0.9723951403731593,
+      "raw_offset_s": -0.0031999999999998315,
+      "residual_offset_s": 0.004799243205055346,
+      "sequence": "outdoor_forward_3_snapdragon_with_gt",
+      "x_axis_correlation": 0.9908967427717228,
+      "x_axis_offset_s": -0.005199999999999833
+    },
+    {
+      "applied_gt_time_offset_s": 0.0,
+      "bag_metadata_sha256": "12fb6156a2734ba299f0820339c2329d4786ce224eedd0cf83024439bd1a21fe",
+      "bag_path": "/home/he/datasets/uzhfpv/uzhfpv_outdoor/outdoor_forward_5_snapdragon_with_gt_db",
+      "bag_time_range_s": [
+        526.005993,
+        617.176375797
+      ],
+      "baseline_common_position_duration_s": 17.61500215600006,
+      "baseline_common_position_interval_s": [
+        573.454398161,
+        591.069400317
+      ],
+      "baseline_common_position_samples": 446,
+      "baseline_maximum_timestamp_error_s": 0.017002155999989554,
+      "baseline_vio_path": "/home/he/output/ltv_uzhfpv_notune/outdoor_forward_5_snapdragon_with_gt/baseline/vio.csv",
+      "baseline_vio_sha256": "059b8267b7a3996f8b111609afcea82cc3c47065d96ef76fae42ef63834f3db4",
+      "calibration_td_s": -0.007999243205055177,
+      "category": "uzhfpv_outdoor",
+      "corrected_gt_time_range_s": [
+        573.454398161,
+        591.052398161
+      ],
+      "family": "outdoor_forward",
+      "gt_path": "/home/he/datasets/uzhfpv/archives/outdoor_forward_5_snapdragon_with_gt/groundtruth.txt",
+      "gt_sha256": "7e2c952ca60431d5c138a2a5aa2306740d8dc5c5aab21b115b2e760acd799e41",
+      "gt_time_range_s": [
+        573.454398161,
+        591.052398161
+      ],
+      "imu_sha256": "c3f31ff009dbc98588f7cdc6a5ffc0db76f5d32553f2160c9ad15b6457864f33",
+      "imu_time_range_s": [
+        526.005993,
+        617.173991
+      ],
+      "offset_confident": true,
+      "offset_cross_check_difference_s": 0.003900000000000007,
+      "raw_leica_audit": {
+        "end_time_utc_s": 1540122772.555,
+        "path": "/home/he/datasets/uzhfpv/groundtruth_official/outdoor_forward_5/leica.txt",
+        "positions_finite": true,
+        "samples": 2513,
+        "sha256": "467b81a28231de2f720ead03d67a2ababaf49103cdc5e0640e2e3abcf9f18f8d",
+        "start_time_utc_s": 1540122671.669
+      },
+      "raw_offset_correlation": 0.9825823453527727,
+      "raw_offset_s": -0.0012999999999998373,
+      "residual_offset_s": 0.00669924320505534,
+      "sequence": "outdoor_forward_5_snapdragon_with_gt",
+      "x_axis_correlation": 0.9608425204011302,
+      "x_axis_offset_s": 0.00260000000000017
+    },
+    {
+      "applied_gt_time_offset_s": 0.0,
+      "bag_metadata_sha256": "299f1f4ab9c3c725376fabb2dc797aa65a1302ac287b36d935fdd50b7c1552db",
+      "bag_path": "/home/he/datasets/uzhfpv/uzhfpv_outdoor_45/outdoor_45_1_snapdragon_with_gt_db",
+      "bag_time_range_s": [
+        287.124178549,
+        369.786129
+      ],
+      "baseline_common_position_duration_s": 20.003411040999993,
+      "baseline_common_position_interval_s": [
+        310.643725017,
+        330.647136058
+      ],
+      "baseline_common_position_samples": 507,
+      "baseline_maximum_timestamp_error_s": 0.00541104000001269,
+      "baseline_vio_path": "/home/he/output/ltv_uzhfpv_notune/outdoor_45_1_snapdragon_with_gt/baseline/vio.csv",
+      "baseline_vio_sha256": "a616de2973ab97e89026f808015b8c085b32c9124fc54bb19a896a93a6ea9fbd",
+      "calibration_td_s": -0.008637511810764048,
+      "category": "uzhfpv_outdoor_45",
+      "corrected_gt_time_range_s": [
+        310.643725018,
+        330.641725018
+      ],
+      "family": "outdoor_45",
+      "gt_path": "/home/he/datasets/uzhfpv/archives/outdoor_45_1_snapdragon_with_gt/groundtruth.txt",
+      "gt_sha256": "66d5b23024026b6e2dd6f9bbf4df71d0114d2b633b29ad45437ab4c6c16e1e86",
+      "gt_time_range_s": [
+        310.643725018,
+        330.641725018
+      ],
+      "imu_sha256": "d88f854f7e9bb39b1eedf951a3e135655f86b08a527d071e33bd2b2ba14c5f3b",
+      "imu_time_range_s": [
+        287.132129,
+        369.786129
+      ],
+      "offset_confident": true,
+      "offset_cross_check_difference_s": 0.010000000000000031,
+      "raw_leica_audit": {
+        "end_time_utc_s": 1553768038.539,
+        "path": "/home/he/datasets/uzhfpv/groundtruth_official/outdoor_45_1/leica.txt",
+        "positions_finite": true,
+        "samples": 1217,
+        "sha256": "4eba733b88a786d6313dae4ca6d77e2baab9255d31a8db80b0c2e383aad4e373",
+        "start_time_utc_s": 1553767979.08
+      },
+      "raw_offset_correlation": 0.9095594332443365,
+      "raw_offset_s": -0.004599999999999832,
+      "residual_offset_s": 0.004037511810764217,
+      "sequence": "outdoor_45_1_snapdragon_with_gt",
+      "x_axis_correlation": 0.9833092525763409,
+      "x_axis_offset_s": -0.014599999999999863
+    }
+  ],
+  "thresholds": {
+    "coarse_step_s": 0.001,
+    "direct_family_median_abs_s": 0.008,
+    "fine_step_s": 0.0001,
+    "indoor_compensation_band_s": [
+      -0.1,
+      -0.095
+    ],
+    "maximum_cross_check_difference_s": 0.015,
+    "maximum_family_mad_s": 0.005,
+    "minimum_correlation": 0.8,
+    "search_range_s": [
+      -0.2,
+      0.2
+    ]
+  }
+}
