@@ -39,6 +39,25 @@ class AuditUzhFpvTimeOffsetsTest(unittest.TestCase):
         self.assertEqual(status, "rejected")
         self.assertTrue(np.isnan(applied))
 
+    def test_leica_audit_allows_intentionally_unretained_source(self):
+        self.assertEqual(AUDIT.audit_optional_leica(None),
+                         {"status": "not_retained"})
+
+    def test_leica_audit_records_available_source(self):
+        expected = {
+            "path": "/tmp/leica.txt", "sha256": "abc", "samples": 4,
+            "start_time_utc_s": 1.0, "end_time_utc_s": 2.0,
+            "positions_finite": True,
+        }
+        original = AUDIT.audit_uzh_leica
+        try:
+            AUDIT.audit_uzh_leica = lambda _: dict(expected)
+            result = AUDIT.audit_optional_leica("/tmp/leica.txt")
+        finally:
+            AUDIT.audit_uzh_leica = original
+        self.assertEqual(result["status"], "audited")
+        self.assertEqual(result["sha256"], "abc")
+
     def test_cross_correlation_sign(self):
         times = np.arange(0.0, 20.0, 0.002)
         signal = np.sin(1.7 * times) + 0.4 * np.sin(4.3 * times)

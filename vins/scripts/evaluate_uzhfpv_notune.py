@@ -272,12 +272,16 @@ def render_markdown(audit, execution):
         "| Sequence | Samples | UTC range (s) | Finite position | SHA-256 |",
         "|---|---:|---:|---|---|"))
     for item in audit["time_audit"]["sequences"]:
-        leica = item["raw_leica_audit"]
-        lines.append(
-            f"| {item['sequence']} | {leica['samples']} | "
-            f"{leica['start_time_utc_s']:.3f}–{leica['end_time_utc_s']:.3f} | "
-            f"{'yes' if leica['positions_finite'] else 'no'} | "
-            f"`{leica['sha256']}` |")
+        leica = item.get("raw_leica_audit", {"status": "not_retained"})
+        if leica.get("status") == "not_retained":
+            lines.append(
+                f"| {item['sequence']} | N/A | N/A | not retained | N/A |")
+        else:
+            lines.append(
+                f"| {item['sequence']} | {leica['samples']} | "
+                f"{leica['start_time_utc_s']:.3f}–{leica['end_time_utc_s']:.3f} | "
+                f"{'yes' if leica['positions_finite'] else 'no'} | "
+                f"`{leica['sha256']}` |")
     lines.append("")
 
     lines.extend((

@@ -55,8 +55,6 @@ install(
   DESTINATION lib/${PROJECT_NAME}
 )
 
-
-
 #install(TARGETS
 #    loop_fusion_node
 #    DESTINATION lib/${PROJECT_NAME}

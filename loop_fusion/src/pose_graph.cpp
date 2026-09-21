@@ -31,7 +31,8 @@ PoseGraph::PoseGraph()
 
 PoseGraph::~PoseGraph()
 {
-    t_optimization.detach();
+    if (t_optimization.joinable())
+        t_optimization.detach();
 }
 
 void PoseGraph::registerPub(rclcpp::Node::SharedPtr n)

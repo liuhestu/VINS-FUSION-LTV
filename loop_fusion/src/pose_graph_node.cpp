@@ -21,6 +21,7 @@
 #include <std_msgs/msg/bool.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <iostream>
+#include <cstdlib>
 // #include <ros/package.h>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <mutex>
@@ -253,7 +254,7 @@ void extrinsic_callback(const nav_msgs::msg::Odometry::SharedPtr pose_msg)
 
 void process()
 {
-    while (true)
+    while (rclcpp::ok())
     {
         sensor_msgs::msg::Image::ConstPtr image_msg = NULL;
         sensor_msgs::msg::PointCloud::ConstPtr point_msg = NULL;
@@ -392,7 +393,7 @@ void process()
 
 void command()
 {
-    while(1)
+    while(rclcpp::ok())
     {
         char c = getchar();
         if (c == 's')
@@ -403,6 +404,7 @@ void command()
             printf("save pose graph finish\nyou can set 'load_previous_pose_graph' to 1 in the config file to reuse it next time\n");
             printf("program shutting down...\n");
             rclcpp::shutdown();
+            return;
         }
         if (c == 'n')
             new_sequence();
@@ -451,11 +453,13 @@ int main(int argc, char **argv)
 
     // referred from: https://answers.ros.org/question/288501/ros2-equivalent-of-rospackagegetpath/
     std::string pkg_path = ament_index_cpp::get_package_share_directory("loop_fusion");
-    string vocabulary_file = pkg_path + "/../support_files/brief_k10L6.bin";
+    const char *support_override = std::getenv("VINS_FUSION_SUPPORT_FILES");
+    string support_path = support_override ? support_override : (pkg_path + "/../support_files");
+    string vocabulary_file = support_path + "/brief_k10L6.bin";
     cout << "vocabulary_file" << vocabulary_file << endl;
     posegraph.loadVocabulary(vocabulary_file);
 
-    BRIEF_PATTERN_FILE = pkg_path + "/../support_files/brief_pattern.yml";
+    BRIEF_PATTERN_FILE = support_path + "/brief_pattern.yml";
     cout << "BRIEF_PATTERN_FILE" << BRIEF_PATTERN_FILE << endl;
 
     int pn = config_file.find_last_of('/');
@@ -523,6 +527,14 @@ int main(int argc, char **argv)
     keyboard_command_process = std::thread(command);
     
     rclcpp::spin(n);
+
+    // The command thread is used by the batch runner to request a final
+    // pose-graph save.  Join both workers before returning so that the
+    // process exits cleanly instead of destroying joinable threads.
+    if (measurement_process.joinable())
+        measurement_process.join();
+    if (keyboard_command_process.joinable())
+        keyboard_command_process.join();
 
     return 0;
 }

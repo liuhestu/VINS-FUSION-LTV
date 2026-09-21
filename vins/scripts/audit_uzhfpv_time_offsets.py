@@ -153,6 +153,16 @@ def decide_family(residuals):
     return "rejected", math.nan, median, mad
 
 
+def audit_optional_leica(path):
+    if not path:
+        return {"status": "not_retained"}
+    audit = audit_uzh_leica(path)
+    if not audit["positions_finite"]:
+        raise RuntimeError(f"raw Leica positions are non-finite: {path}")
+    audit["status"] = "audited"
+    return audit
+
+
 def audit_sequence(sequence, dataset_root, cache_root, results_root,
                    repository):
     family = sequence_family(sequence)
@@ -186,11 +196,7 @@ def audit_sequence(sequence, dataset_root, cache_root, results_root,
         cross_check["correlation"] >= 0.8 and
         abs(primary["offset_s"] - cross_check["offset_s"]) <= 0.015)
     leica_path = discover_uzh_leica(str(bag))
-    if not leica_path:
-        raise RuntimeError(f"{sequence}: missing raw official Leica file")
-    leica_audit = audit_uzh_leica(leica_path)
-    if not leica_audit["positions_finite"]:
-        raise RuntimeError(f"{sequence}: raw Leica positions are non-finite")
+    leica_audit = audit_optional_leica(leica_path)
     return {
         "sequence": sequence,
         "family": family,
