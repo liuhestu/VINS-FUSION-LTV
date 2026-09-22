@@ -10,7 +10,7 @@
  *******************************************************/
 
 #include <stdio.h>
-#include <queue>
+#include <deque>
 #include <map>
 #include <thread>
 #include <mutex>
@@ -24,10 +24,10 @@
 
 Estimator estimator;
 
-queue<sensor_msgs::msg::Imu::ConstPtr> imu_buf;
-queue<sensor_msgs::msg::PointCloud::ConstPtr> feature_buf;
-queue<sensor_msgs::msg::Image::ConstPtr> img0_buf;
-queue<sensor_msgs::msg::Image::ConstPtr> img1_buf;
+std::deque<sensor_msgs::msg::Imu::ConstPtr> imu_buf;
+std::deque<sensor_msgs::msg::PointCloud::ConstPtr> feature_buf;
+std::deque<sensor_msgs::msg::Image::ConstPtr> img0_buf;
+std::deque<sensor_msgs::msg::Image::ConstPtr> img1_buf;
 std::mutex m_buf;
 
 std::int64_t timestampNs(const builtin_interfaces::msg::Time &stamp)
@@ -41,7 +41,7 @@ void img0_callback(const sensor_msgs::msg::Image::SharedPtr img_msg)
 {
     m_buf.lock();
     // std::cout << "Left : " << img_msg->header.stamp.sec << "." << img_msg->header.stamp.nanosec << endl;
-    img0_buf.push(img_msg);
+    img0_buf.push_back(img_msg);
     m_buf.unlock();
 }
 
@@ -49,7 +49,7 @@ void img1_callback(const sensor_msgs::msg::Image::SharedPtr img_msg)
 {
     m_buf.lock();
     // std::cout << "Right: " << img_msg->header.stamp.sec << "." << img_msg->header.stamp.nanosec << endl;
-    img1_buf.push(img_msg);
+    img1_buf.push_back(img_msg);
     m_buf.unlock();
 }
 
@@ -90,33 +90,38 @@ void sync_process()
             m_buf.lock();
             if (!img0_buf.empty() && !img1_buf.empty())
             {
-                const auto decision = vins::classifyStereoTimestamps(
-                    timestampNs(img0_buf.front()->header.stamp),
-                    timestampNs(img1_buf.front()->header.stamp));
-                if(decision == vins::StereoSyncDecision::DropLeft)
+                auto best_left = img0_buf.end();
+                auto best_right = img1_buf.end();
+                std::int64_t best_delta = INT64_MAX;
+                for (auto left = img0_buf.begin(); left != img0_buf.end(); ++left)
                 {
-                    img0_buf.pop();
-                    printf("throw img0\n");
+                    for (auto right = img1_buf.begin(); right != img1_buf.end(); ++right)
+                    {
+                        const std::int64_t delta = std::llabs(
+                            timestampNs((*left)->header.stamp) -
+                            timestampNs((*right)->header.stamp));
+                        if (delta < best_delta)
+                        {
+                            best_delta = delta;
+                            best_left = left;
+                            best_right = right;
+                        }
+                    }
                 }
-                else if(decision == vins::StereoSyncDecision::DropRight)
+                // The recorded cameras share timestamps, but a transport
+                // drop on one side can leave adjacent frames at the fronts
+                // of the queues.  Pair within one camera period so the
+                // worker cannot deadlock forever on a missing exact stamp.
+                if (best_delta <= 50000000)
                 {
-                    img1_buf.pop();
-                    printf("throw img1\n");
-                }
-                else
-                {
+                    img0_buf.erase(img0_buf.begin(), best_left);
+                    img1_buf.erase(img1_buf.begin(), best_right);
                     time = img0_buf.front()->header.stamp.sec + img0_buf.front()->header.stamp.nanosec * (1e-9);
                     header = img0_buf.front()->header;
                     image0 = getImageFromMsg(img0_buf.front());
-                    img0_buf.pop();
+                    img0_buf.pop_front();
                     image1 = getImageFromMsg(img1_buf.front());
-                    img1_buf.pop();
-                    // Drop old buffered frames to keep up with real-time
-                    while(img0_buf.size() > 1 && img1_buf.size() > 1)
-                    {
-                        img0_buf.pop();
-                        img1_buf.pop();
-                    }
+                    img1_buf.pop_front();
                 }
             }
             m_buf.unlock();
@@ -134,11 +139,11 @@ void sync_process()
                 time = img0_buf.front()->header.stamp.sec + img0_buf.front()->header.stamp.nanosec * (1e-9);
                 header = img0_buf.front()->header;
                 image = getImageFromMsg(img0_buf.front());
-                img0_buf.pop();
+                img0_buf.pop_front();
                 // Drop old buffered frames to keep up with real-time
                 while(img0_buf.size() > 1)
                 {
-                    img0_buf.pop();
+                    img0_buf.pop_front();
                 }
             }
             m_buf.unlock();
@@ -285,12 +290,13 @@ int main(int argc, char **argv)
         sub_imu = n->create_subscription<sensor_msgs::msg::Imu>(IMU_TOPIC, rclcpp::SensorDataQoS().keep_last(2000), imu_callback);
     }
     auto sub_feature = n->create_subscription<sensor_msgs::msg::PointCloud>("/feature_tracker/feature", rclcpp::QoS(rclcpp::KeepLast(2000)), feature_callback);
-    auto sub_img0 = n->create_subscription<sensor_msgs::msg::Image>(IMAGE0_TOPIC, rclcpp::SensorDataQoS(), img0_callback);
+    const auto image_qos = rclcpp::QoS(rclcpp::KeepLast(2000)).reliable();
+    auto sub_img0 = n->create_subscription<sensor_msgs::msg::Image>(IMAGE0_TOPIC, image_qos, img0_callback);
 
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr sub_img1 = NULL;
     if(STEREO)
     {
-        sub_img1 = n->create_subscription<sensor_msgs::msg::Image>(IMAGE1_TOPIC, rclcpp::SensorDataQoS(), img1_callback);
+        sub_img1 = n->create_subscription<sensor_msgs::msg::Image>(IMAGE1_TOPIC, image_qos, img1_callback);
     }
 
     auto sub_restart = n->create_subscription<std_msgs::msg::Bool>("/vins_restart", rclcpp::QoS(rclcpp::KeepLast(100)), restart_callback);

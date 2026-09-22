@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the frozen UZH-FPV indoor-forward Loop-on study at 1x bag rate."""
+"""Run the frozen UZH-FPV indoor-forward Loop-on study."""
 
 import argparse
 import hashlib
@@ -11,6 +11,7 @@ import subprocess
 import sys
 import time
 import uuid
+import re
 from pathlib import Path
 
 from run_stage5_velocity_oracle import replace_setting, sha256
@@ -68,6 +69,38 @@ def stop_process(process, timeout=10):
             process.wait()
 
 
+def count_csv_rows(path):
+    if not path.is_file():
+        return 0
+    return sum(1 for line in path.open(encoding="utf-8") if line.strip())
+
+
+def log_diagnostics(vins_log, loop_log, output, no_loop_root, sequence):
+    vins_text = vins_log.read_text(encoding="utf-8", errors="replace")
+    loop_text = loop_log.read_text(encoding="utf-8", errors="replace")
+    process_times = [float(value) for value in re.findall(
+        r"process time:\s*([0-9]+(?:\.[0-9]+)?)", vins_text)]
+    process_times.sort()
+    p95 = process_times[min(len(process_times) - 1,
+                            int(0.95 * (len(process_times) - 1)))] if process_times else None
+    reference = no_loop_root / sequence / "baseline" / "vio.csv"
+    pose_graph = output / "pose_graph" / "pose_graph.txt"
+    return {
+        "vio_samples": count_csv_rows(output / "vio.csv"),
+        "loop_trajectory_samples": count_csv_rows(output / "vio_loop.csv"),
+        "keyframe_count": count_csv_rows(pose_graph),
+        "throw_img0_count": vins_text.count("throw img0"),
+        "throw_img1_count": vins_text.count("throw img1"),
+        "process_time_count": len(process_times),
+        "process_time_mean_ms": (sum(process_times) / len(process_times)
+                                  if process_times else None),
+        "process_time_p95_ms": p95,
+        "process_time_max_ms": max(process_times) if process_times else None,
+        "loop_detection_count": len(re.findall(r"detect loop with", loop_text)),
+        "no_loop_reference_vio_samples": count_csv_rows(reference),
+    }
+
+
 def run_one(arguments, repository, sequence, mode):
     category = "uzhfpv_indoor"
     bag = arguments.dataset_root / category / f"{sequence}_db"
@@ -101,6 +134,7 @@ def run_one(arguments, repository, sequence, mode):
         "frozen_settings": settings,
         "loop_enabled": True,
         "bag_rate": arguments.rate,
+        "no_loop_reference_root": str(arguments.no_loop_root.resolve()),
     }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     logs = {name: (partial / f"{name}.log").open("w", encoding="utf-8")
@@ -157,6 +191,9 @@ def run_one(arguments, repository, sequence, mode):
         loop_shutdown_ok = loop_return == 0 or (
             loop_return in (-2, -6, -9, -11, -15) and csv_path.is_file() and graph_file.is_file())
         complete = bag_return == 0 and loop_shutdown_ok and csv_path.is_file()
+        diagnostics = log_diagnostics(logs["vins"].name and Path(logs["vins"].name),
+                                      Path(logs["loop"].name), partial,
+                                      arguments.no_loop_root, sequence)
         result = {
             "sequence": sequence, "mode": mode, "status": "complete" if complete else "failed",
             "bag_exit_code": bag_return, "loop_exit_code": loop_return,
@@ -164,6 +201,7 @@ def run_one(arguments, repository, sequence, mode):
             "vins_exit_code": vins_return, "vio_loop_exists": csv_path.is_file(),
             "pose_graph_exists": graph_file.is_file(),
             "wall_duration_s": time.time() - started,
+            "diagnostics": diagnostics,
         }
         (partial / "run_summary.json").write_text(
             json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -188,7 +226,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-root", type=Path, default=Path("/home/he/datasets/uzhfpv"))
     parser.add_argument("--output-root", type=Path, default=Path("/home/he/output/uzhfpv_loop"))
-    parser.add_argument("--rate", type=float, default=1.0)
+    parser.add_argument("--rate", type=float, default=0.20)
+    parser.add_argument("--no-loop-root", type=Path,
+                        default=Path("/home/he/output/ltv_uzhfpv_notune"))
     parser.add_argument("--node-start-delay", type=float, default=3.0)
     parser.add_argument("--drain-delay", type=float, default=8.0)
     parser.add_argument("--loop-timeout", type=float, default=60.0)
