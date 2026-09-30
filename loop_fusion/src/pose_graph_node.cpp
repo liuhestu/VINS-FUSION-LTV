@@ -21,6 +21,8 @@
 #include <std_msgs/msg/bool.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <iostream>
+#include <poll.h>
+#include <unistd.h>
 #include <cstdlib>
 // #include <ros/package.h>
 #include <ament_index_cpp/get_package_share_directory.hpp>
@@ -69,6 +71,7 @@ std::string CAMERA_FRAME_ID = "camera";
 camodocal::CameraPtr m_camera;
 Eigen::Vector3d tic;
 Eigen::Matrix3d qic;
+std::atomic<bool> extrinsic_ready{false};
 rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_match_img;
 rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr pub_camera_pose_visual;
 rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odometry_rect;
@@ -241,6 +244,13 @@ void vio_callback(const nav_msgs::msg::Odometry::SharedPtr pose_msg)
 
 void extrinsic_callback(const nav_msgs::msg::Odometry::SharedPtr pose_msg)
 {
+    const auto &rotation = pose_msg->pose.pose.orientation;
+    Eigen::Quaterniond orientation(rotation.w, rotation.x, rotation.y, rotation.z);
+    const auto &position = pose_msg->pose.pose.position;
+    Eigen::Vector3d translation(position.x, position.y, position.z);
+    if (!orientation.coeffs().allFinite() ||
+        std::abs(orientation.norm() - 1.0) > 1e-3 || !translation.allFinite())
+        return;
     m_process.lock();
     tic = Vector3d(pose_msg->pose.pose.position.x,
                    pose_msg->pose.pose.position.y,
@@ -250,12 +260,18 @@ void extrinsic_callback(const nav_msgs::msg::Odometry::SharedPtr pose_msg)
                       pose_msg->pose.pose.orientation.y,
                       pose_msg->pose.pose.orientation.z).toRotationMatrix();
     m_process.unlock();
+    extrinsic_ready = true;
 }
 
 void process()
 {
     while (rclcpp::ok())
     {
+        if (!extrinsic_ready)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            continue;
+        }
         sensor_msgs::msg::Image::ConstPtr image_msg = NULL;
         sensor_msgs::msg::PointCloud::ConstPtr point_msg = NULL;
         nav_msgs::msg::Odometry::ConstPtr pose_msg = NULL;
@@ -395,7 +411,13 @@ void command()
 {
     while(rclcpp::ok())
     {
-        char c = getchar();
+        // A blocking getchar prevents joining this worker on SIGINT.
+        pollfd input{STDIN_FILENO, POLLIN, 0};
+        if (poll(&input, 1, 100) <= 0)
+            continue;
+        char c;
+        if (read(STDIN_FILENO, &c, 1) != 1)
+            return;
         if (c == 's')
         {
             m_process.lock();
@@ -454,7 +476,7 @@ int main(int argc, char **argv)
     // referred from: https://answers.ros.org/question/288501/ros2-equivalent-of-rospackagegetpath/
     std::string pkg_path = ament_index_cpp::get_package_share_directory("loop_fusion");
     const char *support_override = std::getenv("VINS_FUSION_SUPPORT_FILES");
-    string support_path = support_override ? support_override : (pkg_path + "/../support_files");
+    string support_path = support_override ? support_override : (pkg_path + "/support_files");
     string vocabulary_file = support_path + "/brief_k10L6.bin";
     cout << "vocabulary_file" << vocabulary_file << endl;
     posegraph.loadVocabulary(vocabulary_file);
@@ -528,13 +550,18 @@ int main(int argc, char **argv)
     
     rclcpp::spin(n);
 
-    // The command thread is used by the batch runner to request a final
-    // pose-graph save.  Join both workers before returning so that the
-    // process exits cleanly instead of destroying joinable threads.
     if (measurement_process.joinable())
         measurement_process.join();
     if (keyboard_command_process.joinable())
         keyboard_command_process.join();
+
+    // Release global publishers while the node and ROS context still exist.
+    posegraph.stop();
+    pub_match_img.reset();
+    pub_camera_pose_visual.reset();
+    pub_odometry_rect.reset();
+    pub_point_cloud.reset();
+    pub_margin_cloud.reset();
 
     return 0;
 }

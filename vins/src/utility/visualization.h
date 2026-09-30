@@ -62,6 +62,7 @@ void pubCameraPose(const Estimator &estimator, const std_msgs::msg::Header &head
 void pubPointCloud(const Estimator &estimator, const std_msgs::msg::Header &header);
 
 void pubTF(const Estimator &estimator, const std_msgs::msg::Header &header);
+void pubExtrinsic(const Estimator &estimator, const std_msgs::msg::Header &header);
 
 void pubKeyframe(const Estimator &estimator);
 

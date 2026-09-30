@@ -459,6 +459,7 @@ void Estimator::processMeasurements()
             // cout << "5-3" << endl;
             pubPointCloud(*this, header);
             // cout << "5-4" << endl;
+            pubExtrinsic(*this, header);
             pubKeyframe(*this);
             // cout << "5-5" << endl;
             pubTF(*this, header);

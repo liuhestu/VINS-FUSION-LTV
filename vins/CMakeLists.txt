@@ -189,6 +189,11 @@ install(
   DESTINATION lib/${PROJECT_NAME}
 )
 
+install(
+  PROGRAMS scripts/run_euroc_loop.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 
 
 # Install binaries

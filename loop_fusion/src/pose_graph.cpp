@@ -10,6 +10,7 @@
  *******************************************************/
 
 #include "pose_graph.h"
+#include <cmath>
 
 PoseGraph::PoseGraph()
 {
@@ -31,8 +32,19 @@ PoseGraph::PoseGraph()
 
 PoseGraph::~PoseGraph()
 {
+    stop();
+}
+
+void PoseGraph::stop()
+{
+    stop_requested = true;
     if (t_optimization.joinable())
-        t_optimization.detach();
+        t_optimization.join();
+    pub_pg_path.reset();
+    pub_base_path.reset();
+    pub_pose_graph.reset();
+    for (auto &publisher : pub_path)
+        publisher.reset();
 }
 
 void PoseGraph::registerPub(rclcpp::Node::SharedPtr n)
@@ -444,7 +456,7 @@ void PoseGraph::addKeyFrameIntoVoc(KeyFrame* keyframe)
 
 void PoseGraph::optimize4DoF()
 {
-    while(true)
+    while(!stop_requested)
     {
         int cur_index = -1;
         int first_looped_index = -1;
@@ -624,7 +636,7 @@ void PoseGraph::optimize4DoF()
 
 void PoseGraph::optimize6DoF()
 {
-    while(true)
+    while(!stop_requested)
     {
         int cur_index = -1;
         int first_looped_index = -1;
@@ -920,6 +932,43 @@ void PoseGraph::savePoseGraph()
     printf("pose graph saving... \n");
     string file_path = POSE_GRAPH_SAVE_PATH + "pose_graph.txt";
     pFile = fopen (file_path.c_str(),"w");
+    if (pFile == nullptr)
+    {
+        printf("pose graph save failed: cannot open %s\n", file_path.c_str());
+        m_keyframelist.unlock();
+        return;
+    }
+    int accepted_loops = 0;
+    int invalid_loops = 0;
+    for (auto *keyframe : keyframelist)
+    {
+        if (!keyframe->has_loop)
+            continue;
+        bool valid = keyframe->loop_index >= 0;
+        for (int i = 0; i < 8; ++i)
+            valid = valid && std::isfinite(keyframe->loop_info(i));
+        const double q_norm = std::sqrt(
+            keyframe->loop_info(3) * keyframe->loop_info(3) +
+            keyframe->loop_info(4) * keyframe->loop_info(4) +
+            keyframe->loop_info(5) * keyframe->loop_info(5) +
+            keyframe->loop_info(6) * keyframe->loop_info(6));
+        valid = valid && std::isfinite(q_norm) && std::abs(q_norm - 1.0) < 1e-3 &&
+                std::isfinite(keyframe->loop_info(0)) &&
+                std::isfinite(keyframe->loop_info(1)) &&
+                std::isfinite(keyframe->loop_info(2)) &&
+                std::isfinite(keyframe->loop_info(7));
+        if (valid)
+            ++accepted_loops;
+        else
+        {
+            ++invalid_loops;
+            printf("LOOP_DIAGNOSTIC current=%d candidate=%d status=invalid_saved_loop\n",
+                   keyframe->index, keyframe->loop_index);
+            keyframe->has_loop = false;
+            keyframe->loop_index = -1;
+            keyframe->loop_info.setZero();
+        }
+    }
     //fprintf(pFile, "index time_stamp Tx Ty Tz Qw Qx Qy Qz loop_index loop_info\n");
     list<KeyFrame*>::iterator it;
     for (it = keyframelist.begin(); it != keyframelist.end(); it++)
@@ -962,6 +1011,9 @@ void PoseGraph::savePoseGraph()
         fclose(keypoints_file);
     }
     fclose(pFile);
+
+    printf("LOOP_DIAGNOSTIC accepted_loops=%d invalid_saved_loops=%d\n",
+           accepted_loops, invalid_loops);
 
     printf("save pose graph time: %f s\n", tmp_t.toc() / 1000);
     m_keyframelist.unlock();

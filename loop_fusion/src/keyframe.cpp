@@ -10,6 +10,8 @@
  *******************************************************/
 
 #include "keyframe.h"
+#include <algorithm>
+#include <cmath>
 
 template <typename Derived>
 static void reduceVector(vector<Derived> &v, vector<uchar> status)
@@ -316,6 +318,9 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	reduceVector(matched_2d_old_norm, status);
 	reduceVector(matched_3d, status);
 	reduceVector(matched_id, status);
+	const int brief_matches = static_cast<int>(matched_2d_cur.size());
+	printf("LOOP_DIAGNOSTIC current=%d candidate=%d brief_matches=%d status=candidate_rejected\n",
+	       index, old_kf->index, brief_matches);
 	//printf("search by des finish\n");
 
 	#if 0 
@@ -414,10 +419,16 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	Eigen::Vector3d relative_t;
 	Quaterniond relative_q;
 	double relative_yaw;
+	int pnp_inliers = 0;
+	int pnp_input = 0;
 	if ((int)matched_2d_cur.size() > MIN_LOOP_NUM)
 	{
 		status.clear();
+	    pnp_input = static_cast<int>(matched_3d.size());
 	    PnPRANSAC(matched_2d_old_norm, matched_3d, status, PnP_T_old, PnP_R_old);
+	    pnp_inliers = static_cast<int>(std::count(status.begin(), status.end(), static_cast<uchar>(1)));
+		printf("LOOP_DIAGNOSTIC current=%d candidate=%d brief_matches=%d pnp_input=%d pnp_inliers=%d status=pnp_rejected\n",
+	           index, old_kf->index, brief_matches, pnp_input, pnp_inliers);
 	    reduceVector(matched_2d_cur, status);
 	    reduceVector(matched_2d_old, status);
 	    reduceVector(matched_2d_cur_norm, status);
@@ -494,7 +505,11 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	    //printf("PNP relative\n");
 	    //cout << "pnp relative_t " << relative_t.transpose() << endl;
 	    //cout << "pnp relative_yaw " << relative_yaw << endl;
-	    if (abs(relative_yaw) < 30.0 && relative_t.norm() < 20.0)
+	    const double relative_t_norm = relative_t.norm();
+	    const double relative_q_norm = relative_q.norm();
+	    if (std::isfinite(relative_t_norm) && std::isfinite(relative_yaw) &&
+	        std::isfinite(relative_q_norm) && std::abs(relative_q_norm - 1.0) < 1e-3 &&
+	        abs(relative_yaw) < 30.0 && relative_t_norm < 20.0)
 	    {
 
 	    	has_loop = true;
@@ -502,11 +517,16 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	    	loop_info << relative_t.x(), relative_t.y(), relative_t.z(),
 	    	             relative_q.w(), relative_q.x(), relative_q.y(), relative_q.z(),
 	    	             relative_yaw;
+	    printf("LOOP_DIAGNOSTIC current=%d candidate=%d brief_matches=%d pnp_input=%d pnp_inliers=%d pnp_t_norm=%.9g relative_yaw=%.9g loop_q_norm=%.9g status=accepted_loop\n",
+	           index, old_kf->index, brief_matches, pnp_input, pnp_inliers,
+	           relative_t_norm, relative_yaw, relative_q_norm);
 	    	//cout << "pnp relative_t " << relative_t.transpose() << endl;
 	    	//cout << "pnp relative_q " << relative_q.w() << " " << relative_q.vec().transpose() << endl;
 	        return true;
-	    }
 	}
+	}
+	printf("LOOP_DIAGNOSTIC current=%d candidate=%d brief_matches=%d status=candidate_rejected\n",
+	       index, old_kf->index, brief_matches);
 	//printf("loop final use num %d %lf--------------- \n", (int)matched_2d_cur.size(), t_match.toc());
 	return false;
 }
@@ -588,5 +608,3 @@ BriefExtractor::BriefExtractor(const std::string &pattern_file)
 
   m_brief.importPairs(x1, y1, x2, y2);
 }
-
-

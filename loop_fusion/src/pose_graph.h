@@ -12,6 +12,7 @@
 #pragma once
 
 #include <thread>
+#include <atomic>
 #include <mutex>
 #include <opencv2/opencv.hpp>
 #include <eigen3/Eigen/Dense>
@@ -52,6 +53,7 @@ class PoseGraph
 public:
 	PoseGraph();
 	~PoseGraph();
+	void stop();
 	void registerPub(rclcpp::Node::SharedPtr n);
 	void addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop);
 	void loadKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop);
@@ -84,6 +86,7 @@ private:
 	std::mutex m_path;
 	std::mutex m_drift;
 	std::thread t_optimization;
+	std::atomic<bool> stop_requested{false};
 	std::queue<int> optimize_buf;
 
 	int global_index;

@@ -55,6 +55,11 @@ install(
   DESTINATION lib/${PROJECT_NAME}
 )
 
+install(
+  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../support_files/
+  DESTINATION share/${PROJECT_NAME}/support_files
+)
+
 #install(TARGETS
 #    loop_fusion_node
 #    DESTINATION lib/${PROJECT_NAME}

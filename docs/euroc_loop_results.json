@@ -1,0 +1,254 @@
+[
+  {
+    "sequence": "MH_01_easy",
+    "keyframes": 1091,
+    "matched": 1085,
+    "time_range_s": [
+      1403636581.913555,
+      1403636762.713556
+    ],
+    "max_time_error_s": 7.152557373046875e-07,
+    "gt_sha256": "aae2d7c5684724c8afe364d2fd8499a6ed77a9169adf03736531f67d8e7b2117",
+    "graph_sha256": "fef143c006d1d7bf806aca1d63188100f31e8fa42a7ccc3390cf8e207c4fbc6b",
+    "vio": {
+      "rmse": 0.24021925709471845,
+      "p95": 0.3620691985276422,
+      "maximum": 0.3722066288123121
+    },
+    "loop": {
+      "rmse": 0.16660973738490556,
+      "p95": 0.2452793886024453,
+      "maximum": 0.30786689498505665
+    },
+    "loops": 183,
+    "accepted_log_count": 183,
+    "max_loop_quaternion_norm_error": 6.895622377545152e-07,
+    "zero_loop_translations": 0,
+    "all_pnp": {
+      "inputs": 98924,
+      "inliers": 14629,
+      "rate": 0.1478812017306215
+    },
+    "accepted_pnp": {
+      "inputs": 20650,
+      "inliers": 9394,
+      "rate": 0.4549152542372881
+    },
+    "vio_edge_residual": {
+      "translation_m": {
+        "rmse": 3.088001720159998,
+        "p95": 9.067458330930206,
+        "maximum": 15.729273940064653
+      },
+      "yaw_deg": {
+        "rmse": 8.834924544696493,
+        "p95": 22.313780802823484,
+        "maximum": 59.48719355182618
+      }
+    },
+    "loop_edge_residual": {
+      "translation_m": {
+        "rmse": 3.0708742540123635,
+        "p95": 8.779230695552283,
+        "maximum": 15.782849429552586
+      },
+      "yaw_deg": {
+        "rmse": 8.691246892805955,
+        "p95": 20.617319743155008,
+        "maximum": 59.55345574206865
+      }
+    },
+    "vio_rows": 1831,
+    "vio_loop_rows": 1091,
+    "reported_stereo_drops": {
+      "img0": 0,
+      "img1": 0
+    },
+    "manifest": {
+      "schema": "euroc-loop-run-v1",
+      "sequence": "MH_01_easy",
+      "bag": "/home/he/datasets/euroc/MH_01_easy_db",
+      "bag_sha256": "ee5b4cd947fd5ee56994b8281095019ce2a023b291388b2a3ec9b04c5c4b2fee",
+      "config": "/home/he/vins_fusion_ltv_ws/src/vins_fusion_ltv/config/euroc/euroc_stereo_imu_config.yaml",
+      "config_sha256": "e05307036295c6174a3e69ed771237faf5d3555152fdaff9aa1d3ffd0136dc64",
+      "effective_config_sha256": "068ae5e7b862aa1e92396d046396cd79199b1207335e731fee132d04974220cb",
+      "ltv_enabled": false,
+      "loop_enabled": true,
+      "rate": 1.0,
+      "bag_exit_code": 0,
+      "loop_exit_code": 0,
+      "vins_exit_code": 0,
+      "pose_graph": "/home/he/output/euroc_loop_final_1x_20260922/MH_01_easy/pose_graph/pose_graph.txt",
+      "loop_diagnostics": "/home/he/output/euroc_loop_final_1x_20260922/MH_01_easy/loop.log"
+    },
+    "ate_improved": true
+  },
+  {
+    "sequence": "V1_01_easy",
+    "keyframes": 1100,
+    "matched": 1100,
+    "time_range_s": [
+      1403715280.712143,
+      1403715416.012143
+    ],
+    "max_time_error_s": 2.384185791015625e-07,
+    "gt_sha256": "701200e6924ba845ccdeea884bd717c82d1ed91f480913ea6e2e6ccb9c0fbf6d",
+    "graph_sha256": "a1b676a1ee8fd5434a5cef948e7a3d44810125c3fd421122f62b008ecbd2d56c",
+    "vio": {
+      "rmse": 0.10899280041116823,
+      "p95": 0.16972080569799466,
+      "maximum": 0.19375886243431595
+    },
+    "loop": {
+      "rmse": 0.08201946543868828,
+      "p95": 0.13295929239127233,
+      "maximum": 0.14090292963769135
+    },
+    "loops": 128,
+    "accepted_log_count": 128,
+    "max_loop_quaternion_norm_error": 6.462532913253938e-07,
+    "zero_loop_translations": 0,
+    "all_pnp": {
+      "inputs": 48934,
+      "inliers": 8904,
+      "rate": 0.1819593738504925
+    },
+    "accepted_pnp": {
+      "inputs": 13155,
+      "inliers": 5949,
+      "rate": 0.4522234891676169
+    },
+    "vio_edge_residual": {
+      "translation_m": {
+        "rmse": 1.355358505764109,
+        "p95": 3.3474604202190825,
+        "maximum": 5.8528758611415785
+      },
+      "yaw_deg": {
+        "rmse": 6.768868905326209,
+        "p95": 12.739569075739109,
+        "maximum": 43.97631330340377
+      }
+    },
+    "loop_edge_residual": {
+      "translation_m": {
+        "rmse": 1.306202811041113,
+        "p95": 3.2580436245765494,
+        "maximum": 5.688323846522543
+      },
+      "yaw_deg": {
+        "rmse": 6.804122118542626,
+        "p95": 13.12321307172855,
+        "maximum": 44.10480821042236
+      }
+    },
+    "vio_rows": 1446,
+    "vio_loop_rows": 1100,
+    "reported_stereo_drops": {
+      "img0": 0,
+      "img1": 0
+    },
+    "manifest": {
+      "schema": "euroc-loop-run-v1",
+      "sequence": "V1_01_easy",
+      "bag": "/home/he/datasets/euroc/V1_01_easy_db",
+      "bag_sha256": "f54db7f08679f2caf41bcee8e608b37fce961f827e8243a8bdcf1b8852e5a962",
+      "config": "/home/he/vins_fusion_ltv_ws/src/vins_fusion_ltv/config/euroc/euroc_stereo_imu_config.yaml",
+      "config_sha256": "e05307036295c6174a3e69ed771237faf5d3555152fdaff9aa1d3ffd0136dc64",
+      "effective_config_sha256": "25d9e2e085acc8147b024e7c7ed7df8bfebba609a48e56bcde9ed9ca6b56b1eb",
+      "ltv_enabled": false,
+      "loop_enabled": true,
+      "rate": 1.0,
+      "bag_exit_code": 0,
+      "loop_exit_code": 0,
+      "vins_exit_code": 0,
+      "pose_graph": "/home/he/output/euroc_loop_final_1x_20260922/V1_01_easy/pose_graph/pose_graph.txt",
+      "loop_diagnostics": "/home/he/output/euroc_loop_final_1x_20260922/V1_01_easy/loop.log"
+    },
+    "ate_improved": true
+  },
+  {
+    "sequence": "V1_02_medium",
+    "keyframes": 768,
+    "matched": 768,
+    "time_range_s": [
+      1403715529.562143,
+      1403715608.162143
+    ],
+    "max_time_error_s": 2.384185791015625e-07,
+    "gt_sha256": "fed415eee44313584b9c4f61010dac146d5e4a4a35301db25b1ecd7d4d91b5f0",
+    "graph_sha256": "34225669a162e217f68d0f2f4a366b8488970aa71ca0666f5f0ede688993d9cb",
+    "vio": {
+      "rmse": 0.10188969166446737,
+      "p95": 0.1761772843210255,
+      "maximum": 0.20320151409585205
+    },
+    "loop": {
+      "rmse": 0.06919569611047377,
+      "p95": 0.11869360054752559,
+      "maximum": 0.15584780391107533
+    },
+    "loops": 45,
+    "accepted_log_count": 45,
+    "max_loop_quaternion_norm_error": 6.313813005753843e-07,
+    "zero_loop_translations": 0,
+    "all_pnp": {
+      "inputs": 16540,
+      "inliers": 3136,
+      "rate": 0.18960096735187423
+    },
+    "accepted_pnp": {
+      "inputs": 3478,
+      "inliers": 1685,
+      "rate": 0.4844738355376653
+    },
+    "vio_edge_residual": {
+      "translation_m": {
+        "rmse": 1.4986228944927547,
+        "p95": 3.2843592115446896,
+        "maximum": 4.01673270852647
+      },
+      "yaw_deg": {
+        "rmse": 9.995483307127458,
+        "p95": 30.349399189192198,
+        "maximum": 35.31730508800288
+      }
+    },
+    "loop_edge_residual": {
+      "translation_m": {
+        "rmse": 1.417596941011739,
+        "p95": 3.119860205753044,
+        "maximum": 3.944625262065961
+      },
+      "yaw_deg": {
+        "rmse": 9.971989212193565,
+        "p95": 30.126289947544812,
+        "maximum": 37.18716955946812
+      }
+    },
+    "vio_rows": 845,
+    "vio_loop_rows": 768,
+    "reported_stereo_drops": {
+      "img0": 0,
+      "img1": 0
+    },
+    "manifest": {
+      "schema": "euroc-loop-run-v1",
+      "sequence": "V1_02_medium",
+      "bag": "/home/he/datasets/euroc/V1_02_medium_db",
+      "bag_sha256": "38696c1c806e3dd65e323377e2c239eed80e089ca9f44debe2a1769278e08cdc",
+      "config": "/home/he/vins_fusion_ltv_ws/src/vins_fusion_ltv/config/euroc/euroc_stereo_imu_config.yaml",
+      "config_sha256": "e05307036295c6174a3e69ed771237faf5d3555152fdaff9aa1d3ffd0136dc64",
+      "effective_config_sha256": "3b3198c0f2620e26a8f2797d5aa7ea083ba254991565cd15b5edf6d27d628e9d",
+      "ltv_enabled": false,
+      "loop_enabled": true,
+      "rate": 1.0,
+      "bag_exit_code": 0,
+      "loop_exit_code": 0,
+      "vins_exit_code": 0,
+      "pose_graph": "/home/he/output/euroc_loop_final_1x_20260922/V1_02_medium/pose_graph/pose_graph.txt",
+      "loop_diagnostics": "/home/he/output/euroc_loop_final_1x_20260922/V1_02_medium/loop.log"
+    },
+    "ate_improved": true
+  }
+]
