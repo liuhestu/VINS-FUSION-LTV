@@ -1,0 +1,27 @@
+{
+  "schema": "stage7-all11-v1",
+  "max_new_replays": 80,
+  "initial_jobs": 1,
+  "baseline_reuse": "verified_only",
+  "objective": "mean_sequence_relative_ate",
+  "oracle_enabled": false,
+  "marginalization_enabled": false,
+  "dataset_role": "EuRoC tuning set",
+  "D0": ["V1_01_easy", "MH_04_difficult", "V2_03_difficult"],
+  "D1": ["V1_02_medium", "MH_03_medium", "V2_02_medium"],
+  "remaining": ["MH_01_easy", "MH_02_easy", "MH_05_difficult", "V1_03_difficult", "V2_01_easy"],
+  "allowed": {
+    "ltv_gravity_sigma_deg": [5.0, 10.0, 20.0],
+    "ltv_velocity_sigma_mps": [0.5, 1.0, 2.0],
+    "ltv_gravity_gate_max_eta_norm_error": [0.1, 0.2, 0.4],
+    "ltv_gravity_gate_max_normalized_innovation": [0.03, 0.05, 0.08],
+    "ltv_velocity_gate_max_normalized_innovation": [0.02, 0.03, 0.05],
+    "ltv_velocity_gate_max_disagreement_mps": [0.25, 0.5, 0.75]
+  },
+  "maximum_ate_degradation_vs_B": 0.03,
+  "budget_allocation": {"controls": 22, "search": 27, "D1": 6, "remaining": 10, "gravity_control": 11, "repeats": 3, "delivery": 1},
+  "max_finalists": 2,
+  "gate_candidates": 4,
+  "repeat_sequence": "V1_01_easy",
+  "delivery_sequence": "V1_01_easy"
+}

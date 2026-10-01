@@ -1,0 +1,7 @@
+%YAML:1.0
+ltv_gravity_gate_max_eta_norm_error: 0.2
+ltv_gravity_gate_max_normalized_innovation: 0.03
+ltv_gravity_sigma_deg: 10.0
+ltv_velocity_gate_max_disagreement_mps: 0.5
+ltv_velocity_gate_max_normalized_innovation: 0.03
+ltv_velocity_sigma_mps: 1.0

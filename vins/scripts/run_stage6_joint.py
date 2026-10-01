@@ -99,7 +99,7 @@ def effective_config(base_text, mode, output, frozen_settings=None):
     return result, settings
 
 
-def factor_diagnostics(path, mode):
+def factor_diagnostics(path, mode, strict_stage6=True):
     required = {
         "gravity_factor_added", "gravity_gate_base_eligible",
         "gravity_gate_pass", "gravity_gate_reason_mask",
@@ -202,7 +202,7 @@ def factor_diagnostics(path, mode):
             counts["velocity_factor_added_count"] != 0):
         raise RuntimeError("baseline added an LTV factor")
     if mode == "gravity_only":
-        if counts["gravity_factor_added_count"] == 0:
+        if strict_stage6 and counts["gravity_factor_added_count"] == 0:
             raise RuntimeError("gravity_only mode added no gravity factors")
         if (counts["gravity_factor_added_count"] !=
                 counts["gravity_gate_pass_count"]):
@@ -213,16 +213,16 @@ def factor_diagnostics(path, mode):
     if mode == "velocity_only":
         if counts["gravity_factor_added_count"] != 0:
             raise RuntimeError("velocity_only mode added a gravity factor")
-        if counts["velocity_factor_added_count"] == 0:
+        if strict_stage6 and counts["velocity_factor_added_count"] == 0:
             raise RuntimeError("velocity_only mode added no velocity factors")
         if (counts["velocity_factor_added_count"] !=
                 counts["velocity_base_eligible_count"]):
             raise RuntimeError(
                 "velocity_only fixed velocity factor count is inconsistent")
     if mode in ("joint", "joint_v_gate"):
-        if counts["gravity_factor_added_count"] == 0:
+        if strict_stage6 and counts["gravity_factor_added_count"] == 0:
             raise RuntimeError("joint mode added no gravity factors")
-        if counts["velocity_factor_added_count"] == 0:
+        if strict_stage6 and counts["velocity_factor_added_count"] == 0:
             raise RuntimeError("joint mode added no velocity factors")
         if (counts["gravity_factor_added_count"] !=
                 counts["gravity_gate_pass_count"]):
@@ -234,7 +234,7 @@ def factor_diagnostics(path, mode):
                 counts["velocity_factor_added_count"] !=
                 counts["velocity_gate_pass_count"]):
             raise RuntimeError("joint_v_gate velocity factor/gate pass counts differ")
-        if mode == "joint_v_gate" and not (
+        if strict_stage6 and mode == "joint_v_gate" and not (
                 0 < counts["velocity_gate_pass_count"] <
                 counts["velocity_base_eligible_count"]):
             raise RuntimeError(
@@ -283,7 +283,7 @@ def validate_log(path):
     }
 
 
-def validate_output(output, metadata, mode):
+def validate_output(output, metadata, mode, strict_stage6=True):
     summary_path = output / "replay_summary.json"
     if not summary_path.is_file():
         raise RuntimeError("offline replay did not write replay_summary.json")
@@ -298,7 +298,7 @@ def validate_output(output, metadata, mode):
     ltv_count, snapshots = validate_csv(
         output / "ltv_debug.csv", "frame_timestamp",
         metadata["frame_time_range_ns"], nonnumeric={"reset_reason"})
-    diagnostics = factor_diagnostics(output / "ltv_debug.csv", mode)
+    diagnostics = factor_diagnostics(output / "ltv_debug.csv", mode, strict_stage6)
     diagnostics.update(validate_log(output / "replay.log"))
     diagnostics.update({
         "canonical_pair_count": expected,
