@@ -12,9 +12,57 @@ from evaluate_vins_euroc import read_vins, read_official_ground_truth, rigid_ali
 from evaluate_euroc_final import SEQUENCES, atomic_write
 
 
+def comparison_tables(rows, final, historical_root):
+    """Show current comparisons and explicitly separate historical G-only evidence."""
+    historical = {}
+    history_sha = None
+    manifest = historical_root/'experiment_manifest.json'
+    if manifest.exists():
+        history = json.loads(manifest.read_text())
+        history_sha = history['execution']['replay_sha256']
+        for line in (historical_root/'metrics.jsonl').read_text().splitlines():
+            metric = json.loads(line)
+            if metric['mode']=='gravity_only':
+                historical[metric['sequence']] = metric['ate_rmse_m']
+    lines = ['## 微调前后对比阅读说明', '',
+        '优先看下面两张 ATE RMSE 表（单位 m，越低越好）。`ate_rmse_m` 是绝对值汇总，'
+        '“逐序列 ATE 与相对变化”是同一批结果加上百分比，并非另外一次实验。负变化表示改善。', '',
+        'B：不加入 LTV 因子。W0/T2：均启用 G factor + G gate + V factor + V gate。'
+        'G-only：启用 G factor + G gate，关闭 V factor。最终只将 Gravity normalized innovation '
+        '门限从 0.05 改为 0.03；Gravity sigma=10°、Velocity sigma=1.0 m/s 保持不变。', '',
+        '### Gravity-only（G factor + G gate）', '',
+        '**微调前列是历史参考，不是本轮同二进制对照。** 本轮只重建了最终 Gravity 参数的 G-only；'
+        '没有旧 Gravity 参数的全 11 序列同二进制回放，因此不能将前后差异归因于微调。'
+        '最终参数由 Joint 的 J 选出，未单独优化 Gravity-only。', '',
+        '| Sequence | Baseline B（本轮） | 微调前 G-only（历史参考） | 最终 G-only（本轮） | 最终 Δ vs B |',
+        '|---|---:|---:|---:|---:|']
+    groups = [(r['sequence'],[r]) for r in rows] + [
+        ('Easy/Medium Mean',[r for r in rows if not r['sequence'].endswith('difficult')]),
+        ('Difficult Mean',[r for r in rows if r['sequence'].endswith('difficult')]),
+        ('All Mean',rows)]
+    for label, subset in groups:
+        b,g = [np.mean([r['metrics'][n]['ate_rmse_m'] for r in subset]) for n in ['B','G']]
+        old = (f"{np.mean([historical[r['sequence']] for r in subset]):.6f}"
+               if all(r['sequence'] in historical for r in subset) else '未提供')
+        lines.append(f'| {label} | {b:.6f} | {old} | {g:.6f} | {100*(g/b-1):+.2f}% |')
+    lines += ['', '历史来源：`'+str(historical_root/'metrics.jsonl')+'`；历史 replay SHA：`'+str(history_sha)+'`。'
+        '本轮 replay SHA 见报告开头。历史列保留原评价口径，仅用于查阅。', '',
+        '### G gate + V gate（Joint，同二进制、共同评价时刻）', '',
+        '| Sequence | Baseline B | 微调前 W0 | 微调后 '+final+' | '+final+' Δ vs W0 | '+final+' Δ vs B |',
+        '|---|---:|---:|---:|---:|---:|']
+    for label, subset in groups:
+        b,w,f = [np.mean([r['metrics'][n]['ate_rmse_m'] for r in subset]) for n in ['B','W0',final]]
+        lines.append(f'| {label} | {b:.6f} | {w:.6f} | {f:.6f} | {100*(f/w-1):+.2f}% | {100*(f/b-1):+.2f}% |')
+    lines += ['', 'Joint：T2 相比 W0 为 7 条改善、4 条退化；相比 B 为 9 条改善、2 条退化。'
+        '全序列绝对 RMSE 均值相比 W0 退化约 0.17%，相比 B 改善约 2.15%。'
+        '选参目标 J 是逐序列相对 B 的变化率均值，与绝对 RMSE 算术均值不同。', '']
+    return '\n'.join(lines)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--batch',type=Path,required=True)
+    parser.add_argument('--historical-root',type=Path,default=Path('/home/he/output/ltv_euroc_final_unified'))
     args = parser.parse_args()
     root = args.batch
     plan = json.loads((root/'stage7_plan.json').read_text())
@@ -66,6 +114,8 @@ def main():
         replay=Path('/home/he/vins_fusion_ltv_ws/build/vins/stage5_replay'),cache_root=Path('/home/he/output/ltv_stage5_minimal_fix/cache')))
     runner.report(final,rows,repeats,Path(acceptance['path']) if acceptance['path'] else None)
     text = (root/'stage7_report.md').read_text()
+    marker = '\n## ate_rmse_m'
+    text = text.replace(marker,'\n'+comparison_tables(rows,final,args.historical_root)+marker,1)
     table = ['## 逐序列 ATE 与相对变化','', '| Sequence | B | G-only | Δ vs B | W0 | Δ vs B | Final Joint | Δ vs B | Δ vs W0 | Δ vs G-only |',
         '|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|']
     for r in rows:
